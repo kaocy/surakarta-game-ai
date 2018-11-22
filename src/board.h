@@ -4,7 +4,6 @@
 #define F_LAYER 0x0055005500550055ULL
 #define S_LAYER 0x0000333300003333ULL
 #define T_LAYER 0x000000000F0F0F0FULL
-#define BOARDER 0xFF818181818181FFULL
 
 /**
  * 
@@ -19,14 +18,69 @@
  * (56) (57) (58) (59) (60) (61) (62) (63)
  * 
  */
- 
+
 class Board {
 public:
     typedef uint64_t data;
+    static const data BORDER = 0xFF818181818181FFULL;
 
 public:
-    Board() : {}
+    Board() : board_white(0x007E7E0000000000ULL), board_black(0x00000000007E7E00ULL) {}
+    data& get_board(unsigned int i) {
+        return (i) ? board_white : board_black;
+    }
+    const data& get_board(unsigned int i) const {
+        return (i) ? board_white : board_black;
+    }
 
+    const bool game_over() const {
+        return !board_white || !board_black;
+    }
+
+public:
+    int eat(unsigned origin, unsigned destination) {
+        board_white ^= 1ULL << destination;
+        board_black ^= 1ULL << destination;
+        board_white &= ~(1ULL << origin);
+        board_black &= ~(1ULL << origin);
+        return 1;
+    }
+
+    int move(unsigned origin, unsigned destination) {
+        board_white |= ((board_white >> origin) & 1) << destination;
+        board_black |= ((board_black >> origin) & 1) << destination;
+        board_white &= ~(1ULL << origin);
+        board_black &= ~(1ULL << origin);
+        return 1;
+    }
+
+public:
+    void rotate(int r = 1) {
+        switch (((r % 4) + 4) % 4) {
+            default:
+            case 0: break;
+            case 1: board_operation(1, 8); break; // rotate right
+            case 2: board_operation(9, 7); break; // reverse
+            case 3: board_operation(8, -1);break; // rotate left
+        }
+    }
+
+    void transpose() {
+        board_operation(0, 7);
+    }
+
+    //rotate then transpose
+    void rotate_tran(int r = 1) {
+        switch (((r % 4) + 4) % 4) {
+            default:
+            case 0: board_operation(0, 7); break; // same as transpose
+            case 1: board_operation(8, 8); break;
+            case 2: board_operation(9, 0); break;
+            case 3: board_operation(1, -1);break;
+        }
+    }
+
+protected:
     /**
      * Board Operation
      *
@@ -73,64 +127,70 @@ public:
 
     void board_operation(const int& a, const int& b) {
         if (b >= 0) {
-            board_ = ((board_ &  F_LAYER       ) << a |
-                      (board_ & (F_LAYER <<  1)) << b |
-                      (board_ & (F_LAYER <<  8)) >> b |
-                      (board_ & (F_LAYER <<  9)) >> a);
+            board_white = ((board_white &  F_LAYER       ) << a |
+                           (board_white & (F_LAYER <<  1)) << b |
+                           (board_white & (F_LAYER <<  8)) >> b |
+                           (board_white & (F_LAYER <<  9)) >> a);
 
-            board_ = ((board_ &  S_LAYER       ) << (a << 1) |
-                      (board_ & (S_LAYER <<  2)) << (b << 1) |
-                      (board_ & (S_LAYER << 16)) >> (b << 1) |
-                      (board_ & (S_LAYER << 18)) >> (a << 1));
+            board_white = ((board_white &  S_LAYER       ) << (a << 1) |
+                           (board_white & (S_LAYER <<  2)) << (b << 1) |
+                           (board_white & (S_LAYER << 16)) >> (b << 1) |
+                           (board_white & (S_LAYER << 18)) >> (a << 1));
 
-            board_ = ((board_ &  T_LAYER       ) << (a << 2) |
-                      (board_ & (T_LAYER <<  4)) << (b << 2) |
-                      (board_ & (T_LAYER << 32)) >> (b << 2) |
-                      (board_ & (T_LAYER << 36)) >> (a << 2));
+            board_white = ((board_white &  T_LAYER       ) << (a << 2) |
+                           (board_white & (T_LAYER <<  4)) << (b << 2) |
+                           (board_white & (T_LAYER << 32)) >> (b << 2) |
+                           (board_white & (T_LAYER << 36)) >> (a << 2));
+
+            board_black = ((board_black &  F_LAYER       ) << a |
+                           (board_black & (F_LAYER <<  1)) << b |
+                           (board_black & (F_LAYER <<  8)) >> b |
+                           (board_black & (F_LAYER <<  9)) >> a);
+
+            board_black = ((board_black &  S_LAYER       ) << (a << 1) |
+                           (board_black & (S_LAYER <<  2)) << (b << 1) |
+                           (board_black & (S_LAYER << 16)) >> (b << 1) |
+                           (board_black & (S_LAYER << 18)) >> (a << 1));
+
+            board_black = ((board_black &  T_LAYER       ) << (a << 2) |
+                           (board_black & (T_LAYER <<  4)) << (b << 2) |
+                           (board_black & (T_LAYER << 32)) >> (b << 2) |
+                           (board_black & (T_LAYER << 36)) >> (a << 2));
         }
         else {
-            board_ = ((board_ &  F_LAYER       ) <<  a |
-                      (board_ & (F_LAYER <<  1)) >> -b |
-                      (board_ & (F_LAYER <<  8)) << -b |
-                      (board_ & (F_LAYER <<  9)) >> a);
+            board_white = ((board_white &  F_LAYER       ) <<  a |
+                           (board_white & (F_LAYER <<  1)) >> -b |
+                           (board_white & (F_LAYER <<  8)) << -b |
+                           (board_white & (F_LAYER <<  9)) >> a);
 
-            board_ = ((board_ &  S_LAYER       ) << ( a << 1) |
-                      (board_ & (S_LAYER <<  2)) >> (-b << 1) |
-                      (board_ & (S_LAYER << 16)) << (-b << 1) |
-                      (board_ & (S_LAYER << 18)) >> ( a << 1));
+            board_white = ((board_white &  S_LAYER       ) << ( a << 1) |
+                           (board_white & (S_LAYER <<  2)) >> (-b << 1) |
+                           (board_white & (S_LAYER << 16)) << (-b << 1) |
+                           (board_white & (S_LAYER << 18)) >> ( a << 1));
 
-            board_ = ((board_ &  T_LAYER       ) << ( a << 2) |
-                      (board_ & (T_LAYER <<  4)) >> (-b << 2) |
-                      (board_ & (T_LAYER << 32)) << (-b << 2) |
-                      (board_ & (T_LAYER << 36)) >> ( a << 2));
-        }
-    }
+            board_white = ((board_white &  T_LAYER       ) << ( a << 2) |
+                           (board_white & (T_LAYER <<  4)) >> (-b << 2) |
+                           (board_white & (T_LAYER << 32)) << (-b << 2) |
+                           (board_white & (T_LAYER << 36)) >> ( a << 2));
 
-    void rotate(int r = 1) {
-        switch (((r % 4) + 4) % 4) {
-            default:
-            case 0: break;
-            case 1: board_operation(1, 8); break; // rotate right
-            case 2: board_operation(9, 7); break; // reverse
-            case 3: board_operation(8, -1);break; // rotate left
-        }
-    }
+            board_black = ((board_black &  F_LAYER       ) <<  a |
+                           (board_black & (F_LAYER <<  1)) >> -b |
+                           (board_black & (F_LAYER <<  8)) << -b |
+                           (board_black & (F_LAYER <<  9)) >> a);
 
-    void transpose() {
-        board_operation(0, 7);
-    }
+            board_black = ((board_black &  S_LAYER       ) << ( a << 1) |
+                           (board_black & (S_LAYER <<  2)) >> (-b << 1) |
+                           (board_black & (S_LAYER << 16)) << (-b << 1) |
+                           (board_black & (S_LAYER << 18)) >> ( a << 1));
 
-    //rotate then transpose
-    void rotate_tran(int r = 1) {
-        switch (((r % 4) + 4) % 4) {
-            default:
-            case 0: board_operation(0, 7); break; // same as transpose
-            case 1: board_operation(8, 8); break;
-            case 2: board_operation(9, 0); break;
-            case 3: board_operation(1, -1);break;
+            board_black = ((board_black &  T_LAYER       ) << ( a << 2) |
+                           (board_black & (T_LAYER <<  4)) >> (-b << 2) |
+                           (board_black & (T_LAYER << 32)) << (-b << 2) |
+                           (board_black & (T_LAYER << 36)) >> ( a << 2));
         }
     }
 
 private:
-    data board_;
+    data board_white;
+    data board_black;
 };
