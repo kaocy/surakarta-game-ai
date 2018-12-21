@@ -36,12 +36,3 @@ public:
 protected:
     std::vector<float> value;
 };
-/*
-class Tuples {
-public:
-    typedef uint32_t rest;
-
-private:
-    std::vector<rest> outer, mid, inner;
-};
-*/
