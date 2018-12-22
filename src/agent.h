@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_set>
 #include <random>
+#include <bitset>
 #include "board.h"
 #include "action.h"
 #include "utilities.h"
@@ -17,7 +18,9 @@ public:
 
 class Random_agent : public Agent {
 public:
-    Random_agent() : Agent() {}
+    Random_agent() : Agent() {
+        engine.seed(11);
+    }
 
 protected:
     std::default_random_engine engine;
@@ -59,6 +62,7 @@ public:
         moves.clear();
 
         // eatable
+        /*
         for (unsigned i = 9; i < 55; i++) {
             Board::data piece = 1ULL << i;
             if (!(mine & piece))   continue;
@@ -192,7 +196,7 @@ public:
                 }
             }
         }
-
+        */
         //eatable 2
         unsigned cir_bit[4][25] = {
             // 0: mider
@@ -221,11 +225,11 @@ public:
                 for (unsigned *i = &cc[j*6]; i != &cc[(j + 1) * 6]; i++) {
                     if (empty & (1ULL << *i)) continue;
                     t_eater = *i | ((mine & (1ULL << *i)) >> (*i - 7));
-                    if (t_eatee == 0 && *i != old_eater) //check the eatee and take the square at cross into consideration
+                    if (t_eatee == 0 && *i != (old_eater & 0b111111)) //check the eatee and take the square at cross into consideration
                         t_eatee = t_eater;
                 }
             }
-            for (unsigned i = 0; i < 4; i++) {  
+            for (unsigned i = 0; i < 4; i++) {
                 if ((cc_cir[i][0] & (1 << 7)) == 0) continue;  //only check if mine piece is eater
                 for (unsigned j = 1; j < 4; j++) {
                     unsigned row = (i + j) % 4;
@@ -233,6 +237,8 @@ public:
                     if(cc_cir[row][1] & (1 << 7)) break;  //the eatee is mine
                     unsigned code = (cc_cir[i][0] & 0b111111) | (cc_cir[row][1] & 0b111111) << 6;
                     eats.push_back(code);
+                    std::cout<<std::bitset<12>(code)<<std::endl;
+                    break;
                 }
             }
         }

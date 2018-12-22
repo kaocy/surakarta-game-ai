@@ -21,7 +21,7 @@ public:
         auto& value = w.value;
         uint64_t size = value.size();
         out.write(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
-        out.write(reinterpret_cast<value.data(), sizeof(float) * size);
+        out.write(reinterpret_cast<const char*>(value.data()), sizeof(float) * size);
         return out;
     }
     friend std::istream& operator >>(std::istream& in, weight& w) {
@@ -29,7 +29,7 @@ public:
         uint64_t size = 0;
         in.read(reinterpret_cast<char*>(&size), sizeof(uint64_t));
         value.resize(size);
-        in.read(reinterpret_cast<char*>, sizeof(float) * size);
+        in.read(reinterpret_cast<char*>(value.data()), sizeof(float) * size);
         return in; 
     }
 

@@ -42,9 +42,9 @@ public:
             inner_r += (iwhite >> (bit-1)) & 2ULL;
             inner_r += (iblack >> bit) & 1ULL;
         }
-        o_ = outer[ohead & 15][outer_r] * ((ohead & 16)? -1f: 1f);
-        m_ = mider[mhead & 15][mider_r] * ((mhead & 16)? -1f: 1f);
-        i_ = inner[ihead & 15][inner_r] * ((ihead & 16)? -1f: 1f);
+        o_ = outer[ohead & 15][outer_r] * ((ohead & 16)? -1.f: 1.f);
+        m_ = mider[mhead & 15][mider_r] * ((mhead & 16)? -1.f: 1.f);
+        i_ = inner[ihead & 15][inner_r] * ((ihead & 16)? -1.f: 1.f);
     }
 private:
     
