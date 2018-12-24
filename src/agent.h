@@ -3,10 +3,10 @@
 #include <vector>
 #include <unordered_set>
 #include <random>
-#include <bitset>
 #include "board.h"
 #include "action.h"
 #include "utilities.h"
+#include "tuple.h"
 
 class Agent {
 public:
@@ -45,7 +45,7 @@ public:
         Board::data theirs = before.get_board(color ^ 1);
         Board::data occupied = mine | theirs | Board::BORDER;
         Board::data empty = ~occupied;
-
+        /*
         std::unordered_set<unsigned> record;
         Board::data small_circle[4], big_circle[4];
 
@@ -57,7 +57,7 @@ public:
         big_circle[1]   = occupied & 0x0008080808080800ULL;
         big_circle[2]   = occupied & 0x0000007E00000000ULL;
         big_circle[3]   = occupied & 0x0010101010101000ULL;
-
+        */
         eats.clear();
         moves.clear();
 
@@ -232,12 +232,11 @@ public:
             for (unsigned i = 0; i < 4; i++) {
                 if ((cc_cir[i][0] & (1 << 7)) == 0) continue;  //only check if mine piece is eater
                 for (unsigned j = 1; j < 4; j++) {
-                    unsigned row = (i + j) % 4;
+                    unsigned row = (i + j) & 3;
                     if(cc_cir[row][1] == 0) continue;  //the line is consider empty 
                     if(cc_cir[row][1] & (1 << 7)) break;  //the eatee is mine
                     unsigned code = (cc_cir[i][0] & 0b111111) | (cc_cir[row][1] & 0b111111) << 6;
                     eats.push_back(code);
-                    std::cout<<std::bitset<12>(code)<<std::endl;
                     break;
                 }
             }
@@ -246,7 +245,7 @@ public:
         // movable
         for (unsigned i = 9; i < 55; i++) {
             if (!(mine & (1ULL << i)))   continue;
-            for (unsigned j : Player::neighbor) {
+            for (const unsigned &j : Player::neighbor) {
                 if (empty & (1ULL << (i - j))) moves.push_back(((i - j) << 6) | i);
                 if (empty & (1ULL << (i + j))) moves.push_back(((i + j) << 6) | i);
             }

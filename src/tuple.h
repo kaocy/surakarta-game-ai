@@ -5,42 +5,45 @@
 class Tuples {
 public:
     typedef uint32_t rest;
+    
+public:
     void board_to_tuples(const Board &b, float &o_, float &m_, float &i_) {
         Board::data white = b.get_board(1);
         Board::data black = b.get_board(0);
         rest outer_r = 0, mider_r = 0,inner_r = 0;
-        uint64_t ohead = ((white & 0x42000000004200ULL) * 0x40800000000120ULL >> 57) & 0x55
-                       | ((black & 0x42000000004200ULL) * 0x40800000000120ULL >> 56) & 0xAA;
+        uint64_t head = ((white & 0x02040810204000ULL) * 0x020004000F000ULL >> 40 & 0x888888ULL) 
+                      | ((black & 0x02040810204000ULL) * 0x020004000F000ULL >> 41 & 0x444444ULL) 
+                      | ((white & 0x40201008040200ULL) * 0x4000200010E00ULL >> 42 & 0x222222ULL) 
+                      | ((black & 0x40201008040200ULL) * 0x4000200010E00ULL >> 43 & 0x111111ULL);
+        uint64_t ohead = head >> 16 & 0xFF;
         Board oboard = b;
         convert81(ohead,oboard);
         Board::data owhite = oboard.get_board(1);
         Board::data oblack = oboard.get_board(0);
         for(auto &bit : outer_rest) {
             outer_r *= 3;
-            outer_r += (owhite >> (bit-1)) & 2ULL;
-            outer_r += (oblack >> bit) & 1ULL;
+            outer_r += (owhite >> (bit-1)) & 2;
+            outer_r += (oblack >> bit) & 1;
         }
-        uint64_t mhead = ((white & 0x240000240000ULL) * 0x21000000C000ULL >> 57) & 0x55 
-                       | ((black & 0x240000240000ULL) * 0x21000000C000ULL >> 56) & 0xAA;
+        uint64_t mhead = head >> 8 & 0xFF;
         Board mboard = b;
         convert81(mhead,mboard);
         Board::data mwhite = mboard.get_board(1);
         Board::data mblack = mboard.get_board(0);
         for(auto &bit : mider_rest) {
             mider_r *= 3;
-            mider_r += (mwhite >> (bit-1)) & 2ULL;
-            mider_r += (mblack >> bit) & 1ULL;
+            mider_r += (mwhite >> (bit-1)) & 2;
+            mider_r += (mblack >> bit) & 1;
         }
-        uint64_t ihead = (white >> 27 & 1ULL) | (white >> 26 & 4ULL) | (white >> 32 & 16ULL) | (white >> 29 & 64ULL)
-                       | (black >> 26 & 2ULL) | (black >> 25 & 8ULL) | (black >> 31 & 32ULL) | (black >> 28 & 128ULL);
+        uint64_t ihead = head & 0xFF;
         Board iboard = b;
         convert81(ihead,iboard);
         Board::data iwhite = iboard.get_board(1);
         Board::data iblack = iboard.get_board(0);
         for(auto &bit : inner_rest) {
             inner_r *= 3;
-            inner_r += (iwhite >> (bit-1)) & 2ULL;
-            inner_r += (iblack >> bit) & 1ULL;
+            inner_r += (iwhite >> (bit-1)) & 2;
+            inner_r += (iblack >> bit) & 1;
         }
         o_ = outer[ohead & 15][outer_r] * ((ohead & 16)? -1.f: 1.f);
         m_ = mider[mhead & 15][mider_r] * ((mhead & 16)? -1.f: 1.f);
@@ -48,9 +51,6 @@ public:
     }
 private:
     
-/*  const unsigned outer_head[4] = {011,016,061,066};
-    const unsigned mider_head[4] = {022,025,052,055};
-    const unsigned inner_head[4] = {033,034,043,044};*/
     const unsigned outer_rest[16] = {012,013,014,015,021,026,031,036,041,046,051,056,062,063,064,065};
     const unsigned mider_rest[16] = {012,015,021,023,024,026,032,035,042,045,051,053,054,056,062,065};
     const unsigned inner_rest[16] = {013,014,023,024,031,032,035,036,041,042,045,046,053,054,063,064};
