@@ -10,8 +10,8 @@ public:
 	Action(const Action& a) : code(a.code) {}
 	virtual ~Action() {}
 
-	class Eat; // create a sliding action with board opcode
-	class Move; // create a placing action with position and tile
+	class Eat; // create a eating action
+	class Move; // create a moving action
 
 public:
 	virtual int apply(Board& b) const {

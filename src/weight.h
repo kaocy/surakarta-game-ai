@@ -2,7 +2,6 @@
 #include <iostream>
 #include <vector>
 #include <utility>
-#include "board.h"
 
 class weight {
 public:
@@ -14,7 +13,7 @@ public:
     weight& operator =(const weight& f) = default;
     float& operator[] (size_t i) { return value[i]; }
     const float& operator[] (size_t i) const { return value[i]; }
-    size_t size() const {return value.size(); }
+    size_t size() const { return value.size(); }
 
 public:
     friend std::ostream& operator <<(std::ostream& out, const weight& w) {
@@ -25,7 +24,7 @@ public:
         return out;
     }
     friend std::istream& operator >>(std::istream& in, weight& w) {
-        auto value = w.value;
+        auto &value = w.value;
         uint64_t size = 0;
         in.read(reinterpret_cast<char*>(&size), sizeof(uint64_t));
         value.resize(size);

@@ -4,67 +4,74 @@
 
 class Tuples {
 public:
-    typedef uint32_t rest;
-    
-public:
-    void board_to_tuples(const Board &b, float &o_, float &m_, float &i_) {
+    // 
+    void board_to_tuples(const Board &b, float &outer_v, float &small_v, float &large_v) {
         Board::data white = b.get_board(1);
         Board::data black = b.get_board(0);
-        rest outer_r = 0, mider_r = 0,inner_r = 0;
-        uint64_t head = ((white & 0x02040810204000ULL) * 0x020004000F000ULL >> 40 & 0x888888ULL) 
-                      | ((black & 0x02040810204000ULL) * 0x020004000F000ULL >> 41 & 0x444444ULL) 
-                      | ((white & 0x40201008040200ULL) * 0x4000200010E00ULL >> 42 & 0x222222ULL) 
-                      | ((black & 0x40201008040200ULL) * 0x4000200010E00ULL >> 43 & 0x111111ULL);
-        uint64_t ohead = head >> 16 & 0xFF;
-        Board oboard = b;
-        convert81(ohead,oboard);
-        Board::data owhite = oboard.get_board(1);
-        Board::data oblack = oboard.get_board(0);
-        for(auto &bit : outer_rest) {
-            outer_r *= 3;
-            outer_r += (owhite >> (bit-1)) & 2;
-            outer_r += (oblack >> bit) & 1;
+        uint32_t outer_index = 0, small_index = 0, large_index = 0;
+
+        /**
+         * map board white bit [49, 42, 35, 28, 21, 14] to [49, 14, 42, 21, 35, 28] (0x888888)
+         * map board black bit [49, 42, 35, 28, 21, 14] to [49, 14, 42, 21, 35, 28] (0x444444)
+         * map board white bit [54, 45, 36, 27, 18,  9] to [54,  9, 45, 18, 36, 27] (0x222222)
+         * map board black bit [54, 45, 36, 27, 18,  9] to [54,  9, 45, 18, 36, 27] (0x111111)
+         */
+        uint64_t head = ((white & 0x0002040810204000ULL) * 0x020004000F000ULL >> 40 & 0x888888ULL) | 
+                        ((black & 0x0002040810204000ULL) * 0x020004000F000ULL >> 41 & 0x444444ULL) |
+                        ((white & 0x0040201008040200ULL) * 0x4000200010E00ULL >> 42 & 0x222222ULL) |
+                        ((black & 0x0040201008040200ULL) * 0x4000200010E00ULL >> 43 & 0x111111ULL);
+
+        uint64_t outer_head = head >> 16 & 0xFF;
+        Board outer_board = b;
+        convert81(outer_head, outer_board);
+        Board::data outer_white = outer_board.get_board(1);
+        Board::data outer_black = outer_board.get_board(0);
+        for(auto bit : outer_rest) {
+            outer_index *= 3;
+            outer_index += (outer_white >> (bit-1)) & 2;
+            outer_index += (outer_black >> bit) & 1;
         }
-        uint64_t mhead = head >> 8 & 0xFF;
-        Board mboard = b;
-        convert81(mhead,mboard);
-        Board::data mwhite = mboard.get_board(1);
-        Board::data mblack = mboard.get_board(0);
-        for(auto &bit : mider_rest) {
-            mider_r *= 3;
-            mider_r += (mwhite >> (bit-1)) & 2;
-            mider_r += (mblack >> bit) & 1;
+
+        uint64_t small_head = (head >> 8) & 0xFF;
+        Board small_board = b;
+        convert81(small_head, small_board);
+        Board::data small_white = small_board.get_board(1);
+        Board::data small_black = small_board.get_board(0);
+        for(auto bit : small_rest) {
+            small_index *= 3;
+            small_index += (small_white >> (bit-1)) & 2;
+            small_index += (small_black >> bit) & 1;
         }
-        uint64_t ihead = head & 0xFF;
-        Board iboard = b;
-        convert81(ihead,iboard);
-        Board::data iwhite = iboard.get_board(1);
-        Board::data iblack = iboard.get_board(0);
-        for(auto &bit : inner_rest) {
-            inner_r *= 3;
-            inner_r += (iwhite >> (bit-1)) & 2;
-            inner_r += (iblack >> bit) & 1;
+
+        uint64_t large_head = head & 0xFF;
+        Board large_board = b;
+        convert81(large_head, large_board);
+        Board::data large_white = large_board.get_board(1);
+        Board::data large_black = large_board.get_board(0);
+        for(auto bit : large_rest) {
+            large_index *= 3;
+            large_index += (large_white >> (bit-1)) & 2;
+            large_index += (large_black >> bit) & 1;
         }
-        o_ = outer[ohead & 15][outer_r] * ((ohead & 16)? -1.f: 1.f);
-        m_ = mider[mhead & 15][mider_r] * ((mhead & 16)? -1.f: 1.f);
-        i_ = inner[ihead & 15][inner_r] * ((ihead & 16)? -1.f: 1.f);
+
+        outer_v = outer[outer_head & 0xF][outer_index] * ((outer_head & 16) ? -1.0f : 1.0f);
+        small_v = small[small_head & 0xF][small_index] * ((small_head & 16) ? -1.0f : 1.0f);
+        large_v = large[large_head & 0xF][large_index] * ((large_head & 16) ? -1.0f : 1.0f);
     }
+
 private:
-    
-    const unsigned outer_rest[16] = {012,013,014,015,021,026,031,036,041,046,051,056,062,063,064,065};
-    const unsigned mider_rest[16] = {012,015,021,023,024,026,032,035,042,045,051,053,054,056,062,065};
-    const unsigned inner_rest[16] = {013,014,023,024,031,032,035,036,041,042,045,046,053,054,063,064};
+    const unsigned outer_rest[16] = { 012, 013, 014, 015, 021, 026, 031, 036, 041, 046, 051, 056, 062, 063, 064, 065 };
+    const unsigned small_rest[16] = { 012, 015, 021, 023, 024, 026, 032, 035, 042, 045, 051, 053, 054, 056, 062, 065 };
+    const unsigned large_rest[16] = { 013, 014, 023, 024, 031, 032, 035, 036, 041, 042, 045, 046, 053, 054, 063, 064 };
 
     void convert81(uint64_t &head, Board &b);
-private:
-    std::vector<weight> outer, mider, inner;
 
+private:
+    std::vector<weight> outer, small, large;
 };
 
 void Tuples::convert81(uint64_t &head, Board &b) {
-        
-    switch (head)
-    {
+    switch (head) {
         // [0000]
         case 0b00000000: head = 0x00; break;
 
@@ -95,7 +102,6 @@ void Tuples::convert81(uint64_t &head, Board &b) {
         case 0b00100010: b.rotate(1); head = 0x13; break;
 
         // [1200] 0120 0012 2001 2100 0210 0021 1002
-
         case 0b01100000: head = 0x04; break;
         case 0b00011000: b.rotate(3); head = 0x04; break;
         case 0b00000110: b.rotate(2); head = 0x04; break;
@@ -106,14 +112,12 @@ void Tuples::convert81(uint64_t &head, Board &b) {
         case 0b01000010: b.rotate(1); head = 0x14; break;
 
         // [1020] 0102 2010 0201
-
         case 0b01001000: head = 0x05; break;
         case 0b00010010: b.rotate(3); head = 0x05; break;
         case 0b10000100: b.rotate(2); head = 0x05; break;
         case 0b00100001: b.rotate(1); head = 0x05; break;
 
         // [1110] 0111 1011 1101 2220 0222 2022 2202
-
         case 0b01010100: head = 0x06; break;
         case 0b00010101: b.rotate(3); head = 0x06; break;
         case 0b01000101: b.rotate(2); head = 0x06; break;
@@ -142,7 +146,6 @@ void Tuples::convert81(uint64_t &head, Board &b) {
         case 0b00011010: b.rotate_tran(1); head = 0x17; break;
 
         // [1210] 0121 1012 2101 2120 0212 2021 1202
-
         case 0b01100100: head = 0x08; break;
         case 0b00011001: b.rotate(3); head = 0x08; break;
         case 0b01000110: b.rotate(2); head = 0x08; break;
@@ -175,7 +178,7 @@ void Tuples::convert81(uint64_t &head, Board &b) {
         // [1212] 2121
         case 0b01100110: head = 0x0C; break;
         case 0b10011001: head = 0x1C; break;
-        default:
-            break;
+
+        default: break;
     }
 }
