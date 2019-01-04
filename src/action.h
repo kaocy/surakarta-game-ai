@@ -19,6 +19,19 @@ public:
 		if (proto != entries().end()) return proto->second->reinterpret(this).apply(b);
 		return -1;
 	}
+	virtual std::ostream& operator >>(std::ostream& out) const {
+        auto proto = entries().find(type());
+        if (proto != entries().end()) return proto->second->reinterpret(this) >> out;
+        return out << "??";
+    }
+    virtual std::istream& operator <<(std::istream& in) {
+        auto state = in.rdstate();
+        for (auto proto = entries().begin(); proto != entries().end(); proto++) {
+            if (proto->second->reinterpret(this) << in) return in;
+            in.clear(state);
+        }
+        return in.ignore(2);
+    }
 
 public:
 	operator unsigned() const { return code; }

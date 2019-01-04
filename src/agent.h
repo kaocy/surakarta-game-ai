@@ -11,16 +11,17 @@
 class Agent {
 public:
     Agent() {}
+    virtual ~Agent() {}
+    virtual void open_episode() {}
+    virtual void close_episode() {}
     virtual Action take_action(const Board& b) { return Action(); }
     virtual bool check_for_win(const Board& b) { return b.game_over(); }
-
 };
 
 class Random_agent : public Agent {
 public:
-    Random_agent() : Agent() {
-        engine.seed(11);
-    }
+    Random_agent() : Agent() { engine.seed(11); }
+    virtual ~Random_agent() {}
 
 protected:
     std::default_random_engine engine;
@@ -34,6 +35,13 @@ class Player : public Random_agent {
 public:
     Player(unsigned color) : Random_agent(), color(color) {}
     std::string role() { return color ? "White" : "Black"; }
+    virtual void open_episode() {
+
+    }
+
+    virtual void close_episode() {
+        
+    }
 
 public:
     virtual Action take_action(const Board& before) {
