@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iterator>
 #include <fstream>
 #include "board.h"
 #include "action.h"

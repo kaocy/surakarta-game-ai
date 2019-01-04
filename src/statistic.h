@@ -59,6 +59,7 @@ public:
 
         std::ios ff(nullptr);
         ff.copyfmt(std::cout);
+        std::cout << std::fixed << std::setprecision(0);
         std::cout << count << "\t";
         std::cout << "ops = " << (sop * 1000.0 / sdu);
         std::cout <<     " (" << (op1 * 1000.0 / du1);

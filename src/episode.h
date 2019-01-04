@@ -56,10 +56,10 @@ public:
         time_t time = 0;
         switch (who) {
             case 0:
-                for (int i = 0; i < ep_moves.size(); i += 2) time += ep_moves[i].time;
+                for (unsigned i = 0; i < ep_moves.size(); i += 2) time += ep_moves[i].time;
                 break;
             case 1:
-                for (int i = 1; i < ep_moves.size(); i += 2) time += ep_moves[i].time;
+                for (unsigned i = 1; i < ep_moves.size(); i += 2) time += ep_moves[i].time;
                 break;
             default:
                 time = ep_close.when - ep_open.when;
