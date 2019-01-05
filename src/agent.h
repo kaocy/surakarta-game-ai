@@ -20,11 +20,12 @@ public:
 
 class Random_agent : public Agent {
 public:
-    Random_agent() : Agent() { engine.seed(11); }
+    Random_agent() : Agent(), dis(0.0, 1.0) { engine.seed(11); }
     virtual ~Random_agent() {}
 
 protected:
     std::default_random_engine engine;
+    std::uniform_real_distribution<> dis;
 };
 
 /**
@@ -33,14 +34,24 @@ protected:
  */
 class Player : public Random_agent {
 public:
-    Player(unsigned color) : Random_agent(), color(color) {}
+    Player(unsigned color, Tuple *tuple) : Random_agent(), color(color), tuple(tuple) {}
     std::string role() { return color ? "White" : "Black"; }
-    virtual void open_episode() {
 
+    virtual void open_episode() {
+        record.clear();
+        epsilon = 0.9;
     }
 
     virtual void close_episode() {
-        
+        Board last = record[record.size() - 1];
+        // int black_bitcount = Bitcount(last.get_board(0));
+        int white_bitcount = Bitcount(last.get_board(1));
+
+        if (color == 0) {
+            float result = (white_bitcount == 0) ? 1.0f : -1.0f;
+            for (int i = record.size() - 1; i >= 0; i--)
+                tuple->train_weight(record[i], result);
+        }
     }
 
 public:
@@ -98,16 +109,56 @@ public:
             }
         }
 
-        std::shuffle(eats.begin(), eats.end(), engine);
-        std::shuffle(moves.begin(), moves.end(), engine);
-        if (eats.size() > 0)     return Action::Eat(eats[0]);
-        if (moves.size() > 0)    return Action::Move(moves[0]);
+        if (color == 0 && dis(engine) < epsilon) {
+            float best_value = -1e9;
+            unsigned best_code;
+            Board best_state;
+            int best_action_type;
 
+            for (unsigned code : eats) {
+                Board tmp = Board(before);
+                tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
+                float value = tuple->get_board_value(tmp);
+                if (value > best_value) {
+                    best_value = value;
+                    best_code = code;
+                    best_state = tmp;
+                    best_action_type = 0;
+                }
+            }
+            for (unsigned code : moves) {
+                Board tmp = Board(before);
+                tmp.move(code & 0b111111, (code >> 6) & 0b111111);
+                float value = tuple->get_board_value(tmp);
+                if (value > best_value) {
+                    best_value = value;
+                    best_code = code;
+                    best_state = tmp;
+                    best_action_type = 1;
+                }
+            }
+            if (best_value != -1e9) {
+                record.emplace_back(best_state);
+                if (!best_action_type)  return Action::Eat(best_code);
+                else                    return Action::Move(best_code);
+            }          
+        }
+        else {
+            std::shuffle(eats.begin(), eats.end(), engine);
+            std::shuffle(moves.begin(), moves.end(), engine);
+            if (eats.size() > 0)     return Action::Eat(eats[0]);
+            if (moves.size() > 0)    return Action::Move(moves[0]);
+        }
         return Action();
     }
 
 private:
-    unsigned color; // 0 for white or 1 for black
+    std::vector<Board> record;
+
+private:
+    unsigned color; // 0 for black or 1 for white
     std::vector<unsigned> moves;
     std::vector<unsigned> eats;
+    Tuple *tuple;
+    float epsilon;
 };

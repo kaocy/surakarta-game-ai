@@ -38,8 +38,9 @@ int main(int argc, const char* argv[]) {
         }
     }
 
+    Tuple tuple;
     Statistic stat(total, block, limit);
-    Player play1(0), play2(1);
+    Player play1(0, &tuple), play2(1, &tuple);
 
     if (load.size()) {
         std::ifstream in(load, std::ios::in);
@@ -56,10 +57,10 @@ int main(int argc, const char* argv[]) {
 
         while (true) {
             Player& who = game.take_turns(play1, play2);
-            Action move = who.take_action(game.state());
+            Action action = who.take_action(game.state());
             // std::cout << who.role() << "  ";
 
-            if (game.apply_action(move) != true) break;
+            if (game.apply_action(action) != true) break;
 
             // Board::data black = game.state().get_board(0);
             // Board::data white = game.state().get_board(1);

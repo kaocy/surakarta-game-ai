@@ -1,11 +1,30 @@
 #pragma once
+#include <vector>
 #include "board.h"
 #include "weight.h"
 
-class Tuples {
+class Tuple {
 public:
+    Tuple() : alpha(0.01f) {
+        init_weight();
+    }
+
+    void init_weight() {
+        for (int i = 0; i < 13; i++) {
+            // 3^16 = 43046721;
+            outer.emplace_back(43046721);
+            small.emplace_back(43046721);
+            large.emplace_back(43046721);
+        }
+    }
+
+    void train_weight(const Board &b, float result) {
+        set_board_value(b, result);
+    }
+
+private:
     // 
-    void board_to_tuples(const Board &b, float &outer_v, float &small_v, float &large_v) {
+    void board_to_tuple(const Board &b, uint32_t &outer_bit, uint32_t &small_bit, uint32_t &large_bit) {
         Board::data white = b.get_board(1);
         Board::data black = b.get_board(0);
         uint32_t outer_index = 0, small_index = 0, large_index = 0;
@@ -54,10 +73,36 @@ public:
             large_index += (large_black >> bit) & 1;
         }
 
-        outer_v = outer[outer_head & 0xF][outer_index] * ((outer_head & 16) ? -1.0f : 1.0f);
-        small_v = small[small_head & 0xF][small_index] * ((small_head & 16) ? -1.0f : 1.0f);
-        large_v = large[large_head & 0xF][large_index] * ((large_head & 16) ? -1.0f : 1.0f);
+        outer_bit = (outer_head << 27) | outer_index;
+        small_bit = (small_head << 27) | small_index;
+        large_bit = (large_head << 27) | large_index;
     }
+
+public:
+    float get_board_value(const Board &b) {
+        uint32_t o, s, l;
+        board_to_tuple(b, o, s, l);
+        unsigned outer_head = o >> 27, outer_index = o & ((1 << 27) - 1);
+        unsigned small_head = s >> 27, small_index = s & ((1 << 27) - 1);
+        unsigned large_head = l >> 27, large_index = l & ((1 << 27) - 1);
+
+        float outer_v = outer[outer_head & 0xF][outer_index] * ((outer_head & 16) ? -1.0f : 1.0f);
+        float small_v = small[small_head & 0xF][small_index] * ((small_head & 16) ? -1.0f : 1.0f);
+        float large_v = large[large_head & 0xF][large_index] * ((large_head & 16) ? -1.0f : 1.0f);
+        return (outer_v + small_v + large_v) / 3.0f;
+    }
+
+    void set_board_value(const Board &b, float value) {
+        uint32_t o, s, l;
+        board_to_tuple(b, o, s, l);
+        unsigned outer_head = o >> 27, outer_index = o & ((1 << 27) - 1);
+        unsigned small_head = s >> 27, small_index = s & ((1 << 27) - 1);
+        unsigned large_head = l >> 27, large_index = l & ((1 << 27) - 1);
+
+        outer[outer_head & 0xF][outer_index] += alpha * (value - outer[outer_head & 0xF][outer_index]);
+        small[small_head & 0xF][small_index] += alpha * (value - small[small_head & 0xF][small_index]);
+        large[large_head & 0xF][large_index] += alpha * (value - large[large_head & 0xF][large_index]);
+    } 
 
 private:
     const unsigned outer_rest[16] = { 012, 013, 014, 015, 021, 026, 031, 036, 041, 046, 051, 056, 062, 063, 064, 065 };
@@ -67,10 +112,11 @@ private:
     void convert81(uint64_t &head, Board &b);
 
 private:
-    std::vector<weight> outer, small, large;
+    std::vector<Weight> outer, small, large;
+    float alpha;
 };
 
-void Tuples::convert81(uint64_t &head, Board &b) {
+void Tuple::convert81(uint64_t &head, Board &b) {
     switch (head) {
         // [0000]
         case 0b00000000: head = 0x00; break;
