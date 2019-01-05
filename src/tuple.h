@@ -99,9 +99,9 @@ public:
         unsigned small_head = s >> 27, small_index = s & ((1 << 27) - 1);
         unsigned large_head = l >> 27, large_index = l & ((1 << 27) - 1);
 
-        outer[outer_head & 0xF][outer_index] += alpha * (value - outer[outer_head & 0xF][outer_index]);
-        small[small_head & 0xF][small_index] += alpha * (value - small[small_head & 0xF][small_index]);
-        large[large_head & 0xF][large_index] += alpha * (value - large[large_head & 0xF][large_index]);
+        outer[outer_head & 0xF][outer_index] += alpha * (value - outer[outer_head & 0xF][outer_index]) * ((outer_head & 16) ? -1.0f : 1.0f);
+        small[small_head & 0xF][small_index] += alpha * (value - small[small_head & 0xF][small_index]) * ((small_head & 16) ? -1.0f : 1.0f);
+        large[large_head & 0xF][large_index] += alpha * (value - large[large_head & 0xF][large_index]) * ((large_head & 16) ? -1.0f : 1.0f);
     } 
 
 private:

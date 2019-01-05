@@ -111,7 +111,7 @@ public:
 
         if (color == 0 && dis(engine) < epsilon) {
             float best_value = -1e9;
-            unsigned best_code;
+            unsigned best_code = 0;
             Board best_state;
             int best_action_type;
 
@@ -137,17 +137,47 @@ public:
                     best_action_type = 1;
                 }
             }
-            if (best_value != -1e9) {
+            if (best_code != 0) {
                 record.emplace_back(best_state);
                 if (!best_action_type)  return Action::Eat(best_code);
                 else                    return Action::Move(best_code);
-            }          
+            }       
+        }
+        else if (color == 0) {
+            Board tmp = Board(before);
+            std::shuffle(eats.begin(), eats.end(), engine);
+            std::shuffle(moves.begin(), moves.end(), engine);
+
+            int size1 = eats.size(), size2 = moves.size();
+            if (dis(engine) * (size1 + size2) < size1) {
+                if (eats.size() > 0) {
+                    tmp.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                    record.emplace_back(tmp);
+                    return Action::Eat(eats[0]);
+                }
+            }
+            else {
+                if (moves.size() > 0) {
+                    tmp.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                    record.emplace_back(tmp);
+                    return Action::Move(moves[0]);
+                }
+            }       
         }
         else {
             std::shuffle(eats.begin(), eats.end(), engine);
             std::shuffle(moves.begin(), moves.end(), engine);
-            if (eats.size() > 0)     return Action::Eat(eats[0]);
-            if (moves.size() > 0)    return Action::Move(moves[0]);
+
+            int size1 = eats.size(), size2 = moves.size();
+            if (dis(engine) * (size1 + size2) < size1) {
+                if (eats.size() > 0)   return Action::Eat(eats[0]);
+            }
+            else {
+                if (moves.size() > 0)   return Action::Move(moves[0]);
+            }
+            
+            // if (eats.size() > 0)     return Action::Eat(eats[0]);
+            // if (moves.size() > 0)    return Action::Move(moves[0]);
         }
         return Action();
     }
