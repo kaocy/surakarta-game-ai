@@ -43,19 +43,21 @@ public:
     }
 
     virtual void close_episode() {
+        //std::cout<<color<<"close"<<std::endl;
+        //if (color == 0) {
         Board last = record[record.size() - 1];
         // int black_bitcount = Bitcount(last.get_board(0));
         int white_bitcount = Bitcount(last.get_board(1));
-
-        if (color == 0) {
             float result = (white_bitcount == 0) ? 1.0f : -1.0f;
             for (int i = record.size() - 1; i >= 0; i--)
                 tuple->train_weight(record[i], result);
-        }
+        //}
+       //std::cout<<"end"<<std::endl;
     }
 
 public:
     virtual Action take_action(const Board& before) {
+        
         Board::data mine = before.get_board(color);
         Board::data theirs = before.get_board(color ^ 1);
         Board::data occupied = mine | theirs | Board::BORDER;
@@ -109,7 +111,7 @@ public:
             }
         }
 
-        if (color == 0 && dis(engine) < epsilon) {
+        if (/*color == 0 &&*/ dis(engine) < epsilon) {
             float best_value = -1e9;
             unsigned best_code = 0;
             Board best_state;
@@ -143,7 +145,7 @@ public:
                 else                    return Action::Move(best_code);
             }       
         }
-        else if (color == 0) {
+        else/* if (color == 0)*/ {
             Board tmp = Board(before);
             std::shuffle(eats.begin(), eats.end(), engine);
             std::shuffle(moves.begin(), moves.end(), engine);
@@ -164,7 +166,7 @@ public:
                 }
             }       
         }
-        else {
+        /*else {
             std::shuffle(eats.begin(), eats.end(), engine);
             std::shuffle(moves.begin(), moves.end(), engine);
 
@@ -178,7 +180,7 @@ public:
             
             // if (eats.size() > 0)     return Action::Eat(eats[0]);
             // if (moves.size() > 0)    return Action::Move(moves[0]);
-        }
+        }*/
         return Action();
     }
 
