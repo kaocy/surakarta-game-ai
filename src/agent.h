@@ -43,16 +43,17 @@ public:
     }
 
     virtual void close_episode() {
-        //std::cout<<color<<"close"<<std::endl;
-        //if (color == 0) {
         Board last = record[record.size() - 1];
-        // int black_bitcount = Bitcount(last.get_board(0));
+        int black_bitcount = Bitcount(last.get_board(0));
         int white_bitcount = Bitcount(last.get_board(1));
-            float result = (white_bitcount == 0) ? 1.0f : -1.0f;
-            for (int i = record.size() - 1; i >= 0; i--)
-                tuple->train_weight(record[i], result);
-        //}
-       //std::cout<<"end"<<std::endl;
+
+        float result;
+        if (color == 0 && white_bitcount == 0) result = 1.0f;
+        else if (color == 1 && black_bitcount == 0) result = 1.0f;
+        else    result = -1.0f;
+        
+        for (int i = record.size() - 1; i >= 0; i--)
+            tuple->train_weight(record[i], result);
     }
 
 public:
