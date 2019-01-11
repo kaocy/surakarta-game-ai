@@ -90,11 +90,11 @@ public:
 
 private:
     TreeNode* selection(TreeNode* root) {
-        //std::cout << "selection\n";
+        // std::cout << "selection\n";
         TreeNode* node = root;
         TreeNode* best_node;
         while (node->get_child().size() != 0) {
-            //std::cout << "--------find child---------\n";
+            // std::cout << "--------find child---------\n";
             float best_value = -1e9;
             float t = float(node->get_visit_count()) + 1;
             std::vector<TreeNode> &child = node->get_child();
@@ -105,7 +105,7 @@ private:
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
                 float h = tuple->get_board_value(child[i].get_board());
-                float value = w / n + sqrt(2 * log2(t) / n) + 10 * h / n;
+                float value = w / n + sqrt(2 * log2(t) / n) + h / n;
                 if (best_value < value) {
                     best_value = value;
                     best_node = &child[i];
@@ -113,12 +113,13 @@ private:
             }
             // std::cout << "--------------------------\n";
             node = best_node;
+            // std::cout << &node << std::endl;
         }
         return node;
     }
 
     TreeNode* expansion(TreeNode* leaf) {
-        //std::cout << "expansion\n";
+        // std::cout << "expansion\n";
         const Board& board = leaf->get_board();
         int player = leaf->get_player();
 
