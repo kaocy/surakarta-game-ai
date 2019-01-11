@@ -7,6 +7,7 @@
 #include "episode.h"
 #include "statistic.h"
 #include "utilities.h"
+#include "mcts.h"
 
 int main(int argc, const char* argv[]) {
     std::cout << "Surakarta: ";
@@ -41,6 +42,7 @@ int main(int argc, const char* argv[]) {
     Tuple tuple;
     Statistic stat(total, block, limit);
     Player play1(0, &tuple), play2(1, &tuple);
+    MCTS mcts(&tuple);
 
     if (load.size()) {
         std::ifstream in(load, std::ios::in);
@@ -58,33 +60,21 @@ int main(int argc, const char* argv[]) {
         while (true) {
             Player& who = game.take_turns(play1, play2);
             Action action = who.take_action(game.state());
-            // std::cout << who.role() << "  ";
 
             if (game.apply_action(action) != true) break;
-
-            // Board::data black = game.state().get_board(0);
-            // Board::data white = game.state().get_board(1);
-            // std::cout << Bitcount(black) << " " << Bitcount(white) << std::endl;
-            // for (unsigned i = 0; i < 64; i++) {
-            //     if (black & (1ULL << i))    std::cout << 'O';
-            //     else if (white & (1ULL << i))    std::cout << 'X';
-            //     else    std::cout << '*';
-            //     std::cout << ' ';
-            //     if (i % 8 == 7) std::cout << std::endl;
-            // }
-            // std::cout << "---------------\n";
-
             if (who.check_for_win(game.state())) break;
         }
 
         Player& win = game.last_turns(play1, play2);
-        // Board::data black = game.state().get_board(0);
-        // Board::data white = game.state().get_board(1);
-        // std::cout << "Winner: " << win.role() << "  " << Bitcount(black) << " " << Bitcount(white) << std::endl;
 
         play1.close_episode();
         play2.close_episode();
         stat.close_episode(win.role());
+
+        // after training some episodes, test MCTS playing result
+        if (stat.episode_count() % block == 0) {
+            mcts.playing();
+        }
     }
 
     if (summary) {
