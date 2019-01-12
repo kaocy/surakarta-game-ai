@@ -5,7 +5,7 @@
 
 class Tuple {
 public:
-    Tuple() : alpha(0.1f) {
+    Tuple() : alpha(0.01f) {
         init_weight();
     }
 
@@ -16,6 +16,7 @@ public:
             small.emplace_back(43046721);
             large.emplace_back(43046721);
         }
+
     }
 
     void train_weight(const Board &b, float result) {
@@ -89,19 +90,19 @@ public:
         float outer_v = outer[outer_head & 0xF][outer_index] * ((outer_head & 16) ? -1.0f : 1.0f);
         float small_v = small[small_head & 0xF][small_index] * ((small_head & 16) ? -1.0f : 1.0f);
         float large_v = large[large_head & 0xF][large_index] * ((large_head & 16) ? -1.0f : 1.0f);
-        return (outer_v + 2 * small_v + 2 * large_v) / 5.0f;
+        return (outer_v + 3 * small_v + 3 * large_v) / 7.0f;
     }
 
     void set_board_value(const Board &b, float value) {
         uint32_t o, s, l;
         board_to_tuple(b, o, s, l);
-        unsigned outer_head = o >> 27, outer_index = o & ((1 << 27) - 1);
-        unsigned small_head = s >> 27, small_index = s & ((1 << 27) - 1);
-        unsigned large_head = l >> 27, large_index = l & ((1 << 27) - 1);
+        unsigned outer_head = (o >> 27) & 0xF, outer_index = o & ((1 << 27) - 1) , outer_sign = (o >> 31) ? -1.0f : 1.0f ;
+        unsigned small_head = (s >> 27) & 0xF, small_index = s & ((1 << 27) - 1) , samll_sign = (s >> 31) ? -1.0f : 1.0f ;
+        unsigned large_head = (l >> 27) & 0xF, large_index = l & ((1 << 27) - 1) , large_sign = (l >> 31) ? -1.0f : 1.0f ;
 
-        outer[outer_head & 0xF][outer_index] += alpha * (value - outer[outer_head & 0xF][outer_index]) * ((outer_head & 16) ? -1.0f : 1.0f);
-        small[small_head & 0xF][small_index] += alpha * (value - small[small_head & 0xF][small_index]) * ((small_head & 16) ? -1.0f : 1.0f);
-        large[large_head & 0xF][large_index] += alpha * (value - large[large_head & 0xF][large_index]) * ((large_head & 16) ? -1.0f : 1.0f);
+        outer[outer_head][outer_index] += alpha * (value - outer[outer_head][outer_index] * outer_sign ) * outer_sign;
+        small[small_head][small_index] += alpha * (value - small[small_head][small_index] * samll_sign ) * samll_sign;
+        large[large_head][large_index] += alpha * (value - large[large_head][large_index] * large_sign ) * large_sign;
     } 
 
 private:

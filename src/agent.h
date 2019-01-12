@@ -20,7 +20,7 @@ public:
 
 class RandomAgent : public Agent {
 public:
-    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(11); }
+    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(87); }
     virtual ~RandomAgent() {}
 
 protected:
@@ -39,18 +39,20 @@ public:
 
     virtual void open_episode() {
         record.clear();
-        epsilon = 0.9;
+        epsilon = 0.7;
     }
 
     virtual void close_episode() {
-        Board last = record[record.size() - 1];
+        Board last = record.back();
         int black_bitcount = Bitcount(last.get_board(0));
         int white_bitcount = Bitcount(last.get_board(1));
 
         float result;
-        if (color == 0 && white_bitcount == 0) result = 1.0f;
-        else if (color == 1 && black_bitcount == 0) result = 1.0f;
-        else    result = -1.0f;
+        //std::cout<<black_bitcount<<" "<<white_bitcount<<std::endl;
+        if      (color == 0 && black_bitcount < white_bitcount) result = -1.0f;
+        else if (color == 1 && black_bitcount > white_bitcount) result = -1.0f;
+        else if (black_bitcount == white_bitcount) result = 0.0f;
+        else result = 1.0f;
 
         for (int i = record.size() - 1; i >= 0; i--)
             tuple->train_weight(record[i], result);

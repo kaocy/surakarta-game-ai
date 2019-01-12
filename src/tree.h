@@ -6,9 +6,9 @@ class TreeNode {
 public:
     TreeNode() {}
     TreeNode(const Board &b) : 
-        parent(NULL), board(b), win_score(0), visit_count(0), player(0), explore(false) { child.clear(); }
+        parent(NULL), board(b), win_score(5), visit_count(9), player(0), explore(false) { child.clear(); }
     TreeNode(const Board &b, int player, TreeNode* parent) : 
-        parent(parent), board(b), win_score(0), visit_count(0), player(player), explore(false) { child.clear(); }
+        parent(parent), board(b), win_score(5), visit_count(9), player(player), explore(false) { child.clear(); }
     TreeNode(const TreeNode& node) = default;
     TreeNode& operator =(const TreeNode& node) = default;
 
@@ -64,9 +64,11 @@ public:
         for (auto node : child) {
             if (node.visit_count > max_visit_count) {
                 max_visit_count = node.visit_count;
+                
                 best_node = node;
             }
         }
+        // std::cout<< best_node.visit_count<<std::endl;
         return best_node;
     }
 

@@ -4,6 +4,7 @@
 #include <random>
 #include "tree.h"
 #include "board.h"
+#include "tuple.h"
 #include "utilities.h"
 
 class MCTS {
@@ -16,32 +17,63 @@ public:
         int black_win = 0, white_win = 0;
 
         for (int i = 0; i < 50; i++) {
-            std::cout << i << std::endl;
+            //std::cout << i << std::endl;
             Board board;
-            int player = 0;
-            while (!board.game_over()) {
-                if (player == 0) { // use MCTS to select action
-                    board = find_next_move(board, 0);
+            int player = 0, count = 0;
+            while (!board.game_over() && count++ < 200) {
+                if (player == 1) { // use MCTS to select action
+                    board = find_next_move(board, player);
                 }               
                 else { // random play
                     eats.clear(); moves.clear();
-                    board.get_possible_eat(eats, 1);
-                    board.get_possible_move(moves, 1);
+                    board.get_possible_eat(eats, player);
+                    board.get_possible_move(moves, player);
+                    
+                    float best_value = -1e9;
+                    unsigned best_code = 0;
+                    Board best_state;
+                    int best_action_type;
 
-                    std::shuffle(eats.begin(), eats.end(), engine);
-                    std::shuffle(moves.begin(), moves.end(), engine);
-
-                    int size1 = eats.size(), size2 = moves.size();
-                    if (dis(engine) * (size1 + size2) < size1) {
-                        if (eats.size() > 0) {
-                            board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                    for (unsigned code : eats) {
+                        Board tmp = Board(board);
+                        tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
+                        float value = tuple->get_board_value(tmp);
+                        if (value > best_value) {
+                            best_value = value;
+                            best_code = code;
+                            best_state = tmp;
+                            best_action_type = 0;
                         }
                     }
-                    else {
-                        if (moves.size() > 0) {
-                            board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                    for (unsigned code : moves) {
+                        Board tmp = Board(board);
+                        tmp.move(code & 0b111111, (code >> 6) & 0b111111);
+                        float value = tuple->get_board_value(tmp);
+                        if (value > best_value) {
+                            best_value = value;
+                            best_code = code;
+                            best_state = tmp;
+                            best_action_type = 1;
                         }
                     }
+                    if (best_code != 0) {
+                        if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                        else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    }
+                    // std::shuffle(eats.begin(), eats.end(), engine);
+                    // std::shuffle(moves.begin(), moves.end(), engine);
+
+                    // int size1 = eats.size(), size2 = moves.size();
+                    // if (dis(engine) * (size1 + size2) < size1) {
+                    //     if (eats.size() > 0) {
+                    //         board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                    //     }
+                    // }
+                    // else {
+                    //     if (moves.size() > 0) {
+                    //         board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                    //     }
+                    // }
                 }
                 player ^= 1; // toggle player
             }
@@ -50,11 +82,14 @@ public:
             int white_bitcount = Bitcount(board.get_board(1));
             if (black_bitcount == 0) {
                 white_win++;
-                std::cout << "White wins\n";
+                //std::cout << "White wins\n";
             }    
-            if (white_bitcount == 0) {
+            else if (white_bitcount == 0) {
                 black_win++;
-                std::cout << "Black wins\n";
+                //std::cout << "Black wins\n";
+            }
+            else {
+                //std::cout << "Too Long" << black_bitcount << " "<< white_bitcount <<std::endl;
             }
         }
 
@@ -90,12 +125,13 @@ public:
 
 private:
     TreeNode* selection(TreeNode* root) {
-        // std::cout << "selection\n";
+        //std::cout << "selection\n";
         TreeNode* node = root;
-        TreeNode* best_node;
+        TreeNode* best_node = nullptr;
+        int layer = 0;
         while (node->get_child().size() != 0) {
             // std::cout << "--------find child---------\n";
-            float best_value = -1e9;
+            float best_value = -1e9, worst_value = 1e9;
             float t = float(node->get_visit_count()) + 1;
             std::vector<TreeNode> &child = node->get_child();
             // find the child with maximum UCB value plus n-tuple weight
@@ -105,21 +141,27 @@ private:
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
                 float h = tuple->get_board_value(child[i].get_board());
-                float value = w / n + sqrt(2 * log2(t) / n) + h / n;
-                if (best_value < value) {
+                float value = w / n + 0.3*sqrt(2 * log2(t) / n) /*+ h / n*/;
+                //std::cout << w << " "<< n << std::endl;
+                if (layer && best_value < value) {
                     best_value = value;
+                    best_node = &child[i];
+                }
+                if (!layer && worst_value > value) {
+                    worst_value = value;
                     best_node = &child[i];
                 }
             }
             // std::cout << "--------------------------\n";
             node = best_node;
+            layer ^= 1;
             // std::cout << &node << std::endl;
         }
         return node;
     }
 
     TreeNode* expansion(TreeNode* leaf) {
-        // std::cout << "expansion\n";
+        //std::cout << "expansion\n";
         const Board& board = leaf->get_board();
         int player = leaf->get_player();
 
@@ -144,18 +186,18 @@ private:
 
         // there are no actions can be made
         if (leaf->get_child().size() == 0) {
-            std::cout << "expansion size = 0\n";
-            Board::data black = board.get_board(0);
-            Board::data white = board.get_board(1);
-            std::cout << Bitcount(black) << " " << Bitcount(white) << std::endl;
-            for (unsigned i = 0; i < 64; i++) {
-                if (black & (1ULL << i))    std::cout << 'O';
-                else if (white & (1ULL << i))    std::cout << 'X';
-                else    std::cout << '*';
-                std::cout << ' ';
-                if (i % 8 == 7) std::cout << std::endl;
-            }
-            std::cout << "---------------\n";
+            //std::cout << "expansion size = 0\n";
+            //Board::data black = board.get_board(0);
+            //Board::data white = board.get_board(1);
+            //std::cout << Bitcount(black) << " " << Bitcount(white) << std::endl;
+            // for (unsigned i = 0; i < 64; i++) {
+            //     if (black & (1ULL << i))    std::cout << 'O';
+            //     else if (white & (1ULL << i))    std::cout << 'X';
+            //     else    std::cout << '*';
+            //     std::cout << ' ';
+            //     if (i % 8 == 7) std::cout << std::endl;
+            // }
+            // std::cout << "---------------\n";
             return leaf;
         }
 
@@ -165,7 +207,7 @@ private:
     }
 
     int simulation(TreeNode *leaf) {
-        // std::cout << "simulation\n";
+        //std::cout << "simulation\n";
         TreeNode tmp(*leaf);
         Board& board = tmp.get_board();
         int player = tmp.get_player();
@@ -182,8 +224,8 @@ private:
 
         std::uniform_real_distribution<> dis(0, 1);
         std::vector<unsigned> eats, moves;
-        // random playout for at most 200 steps
-        for (int i = 0; i < 200 && !board.game_over(); i++) {
+        // random playout for at most 100 steps
+        for (int i = 0; i < 100 && !board.game_over(); i++) {
             eats.clear(); moves.clear();
             board.get_possible_eat(eats, player);
             board.get_possible_move(moves, player);
@@ -209,17 +251,17 @@ private:
         // the one has more piece wins
         int black_bitcount = Bitcount(board.get_board(0));
         int white_bitcount = Bitcount(board.get_board(1));
-        if (origin_player == 0 && black_bitcount > white_bitcount)  return 1;
-        if (origin_player == 1 && black_bitcount < white_bitcount)  return 1;
+        if (origin_player == 0 && black_bitcount >= white_bitcount)  return 1;
+        if (origin_player == 1 && black_bitcount <= white_bitcount)  return 1;
         return -1;
     }
 
     void backpropagation(TreeNode *node, int value) {
-        // std::cout << "backpropagation\n";
+        //std::cout << "backpropagation\n";
         node->add_visit_count();
         if (value == 1) node->add_win_score();
         while (node->get_parent() != NULL) {
-            //std::cout << node->get_parent() << std::endl;
+            //std::cout << node->get_parent()->get_win_score() << " " << node->get_parent()->get_visit_count() << std::endl;
             value *= -1;
             node = node->get_parent();
             node->add_visit_count();
