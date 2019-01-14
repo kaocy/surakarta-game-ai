@@ -19,7 +19,7 @@ public:
 
     }
 
-    void train_weight(const Board &b, float result) {
+    void train_weight(const Board &b, float result) {  // 1 black win -1 white win
         set_board_value(b, result);
     }
 
@@ -80,7 +80,7 @@ private:
     }
 
 public:
-    float get_board_value(const Board &b) {
+    float get_board_value(const Board &b, int player) {  // 0 black 1 white
         uint32_t o, s, l;
         board_to_tuple(b, o, s, l);
         unsigned outer_head = o >> 27, outer_index = o & ((1 << 27) - 1);
@@ -90,7 +90,7 @@ public:
         float outer_v = outer[outer_head & 0xF][outer_index] * ((outer_head & 16) ? -1.0f : 1.0f);
         float small_v = small[small_head & 0xF][small_index] * ((small_head & 16) ? -1.0f : 1.0f);
         float large_v = large[large_head & 0xF][large_index] * ((large_head & 16) ? -1.0f : 1.0f);
-        return (outer_v + 3 * small_v + 3 * large_v) / 7.0f;
+        return (outer_v + 3 * small_v + 3 * large_v) / 7.0f * (player? -1.0f: 1.0f) ;
     }
 
     void set_board_value(const Board &b, float value) {

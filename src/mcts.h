@@ -9,7 +9,7 @@
 
 class MCTS {
 public:
-    MCTS(Tuple *tuple) : tuple(tuple) {}
+    MCTS(Tuple *tuple) : tuple(tuple) { engine.seed(80);}
 
     void playing() { 
         std::uniform_real_distribution<> dis(0, 1);
@@ -21,7 +21,7 @@ public:
             Board board;
             int player = 0, count = 0;
             while (!board.game_over() && count++ < 200) {
-                if (player == 1) { // use MCTS to select action
+                if (player == 0) { // use MCTS to select action
                     board = find_next_move(board, player);
                 }               
                 else { // random play
@@ -37,7 +37,7 @@ public:
                     for (unsigned code : eats) {
                         Board tmp = Board(board);
                         tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-                        float value = tuple->get_board_value(tmp);
+                        float value = tuple->get_board_value(tmp, player);
                         if (value > best_value) {
                             best_value = value;
                             best_code = code;
@@ -48,7 +48,7 @@ public:
                     for (unsigned code : moves) {
                         Board tmp = Board(board);
                         tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-                        float value = tuple->get_board_value(tmp);
+                        float value = tuple->get_board_value(tmp, player);
                         if (value > best_value) {
                             best_value = value;
                             best_code = code;
@@ -82,21 +82,21 @@ public:
             int white_bitcount = Bitcount(board.get_board(1));
             if (black_bitcount == 0) {
                 white_win++;
-                //std::cout << "White wins\n";
+                // std::cout << "White wins\n";
             }    
             else if (white_bitcount == 0) {
                 black_win++;
-                //std::cout << "Black wins\n";
+                // std::cout << "Black wins\n";
             }
             else {
-                //std::cout << "Too Long" << black_bitcount << " "<< white_bitcount <<std::endl;
+                // std::cout << "Too Long" << black_bitcount << " "<< white_bitcount <<std::endl;
             }
         }
 
         std::cout << "Playing 50 episodes: \n";
         std::cout << std::fixed << std::setprecision(1);
         std::cout << "Black: " << black_win * 100.0 / (black_win + white_win) << " %" << std::endl;
-        std::cout << "White: " << white_win * 100.0 / (black_win + white_win) << " %" << std::endl;
+        std::cout << "White: " << white_win * 100.0 / (black_win + white_win) << " %\n" << std::endl;
     }
 
     // return board after best action
@@ -127,34 +127,31 @@ private:
     TreeNode* selection(TreeNode* root) {
         //std::cout << "selection\n";
         TreeNode* node = root;
+        int root_color = root->get_player();
         TreeNode* best_node = nullptr;
-        int layer = 0;
+        float layer = 1.0f;  // 1 mine -1 theirs
         while (node->get_child().size() != 0) {
             // std::cout << "--------find child---------\n";
-            float best_value = -1e9, worst_value = 1e9;
+            float best_value = -1e9;
             float t = float(node->get_visit_count()) + 1;
             std::vector<TreeNode> &child = node->get_child();
             // find the child with maximum UCB value plus n-tuple weight
-            for (int i = 0; i < child.size(); i++) {
+            for (size_t i = 0; i < child.size(); i++) {
                 // std::cout << &child[i] << std::endl;
                 // if (!child[i].is_explore())  return &child[i];
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
-                float h = tuple->get_board_value(child[i].get_board());
-                float value = w / n + 0.3*sqrt(2 * log2(t) / n) /*+ h / n*/;
-                //std::cout << w << " "<< n << std::endl;
-                if (layer && best_value < value) {
+                float h = tuple->get_board_value(child[i].get_board(), root_color);
+                float value = -w / n + 0.5f*sqrt(2 * log2(t) / n) + h / n;
+                
+                if (best_value < value) {
                     best_value = value;
-                    best_node = &child[i];
-                }
-                if (!layer && worst_value > value) {
-                    worst_value = value;
                     best_node = &child[i];
                 }
             }
             // std::cout << "--------------------------\n";
             node = best_node;
-            layer ^= 1;
+            layer *= -1.0f;
             // std::cout << &node << std::endl;
         }
         return node;
@@ -251,8 +248,10 @@ private:
         // the one has more piece wins
         int black_bitcount = Bitcount(board.get_board(0));
         int white_bitcount = Bitcount(board.get_board(1));
-        if (origin_player == 0 && black_bitcount >= white_bitcount)  return 1;
-        if (origin_player == 1 && black_bitcount <= white_bitcount)  return 1;
+        // std::cout << black_bitcount << " " << white_bitcount << std::endl; 
+        if (origin_player == 1 && black_bitcount < white_bitcount)  return 1;
+        if (origin_player == 0 && black_bitcount > white_bitcount)  return 1;
+        if (black_bitcount == white_bitcount) return 0;
         return -1;
     }
 

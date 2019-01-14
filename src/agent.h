@@ -20,7 +20,7 @@ public:
 
 class RandomAgent : public Agent {
 public:
-    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(87); }
+    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(197); }
     virtual ~RandomAgent() {}
 
 protected:
@@ -49,8 +49,7 @@ public:
 
         float result;
         //std::cout<<black_bitcount<<" "<<white_bitcount<<std::endl;
-        if      (color == 0 && black_bitcount < white_bitcount) result = -1.0f;
-        else if (color == 1 && black_bitcount > white_bitcount) result = -1.0f;
+        if      (black_bitcount < white_bitcount) result = -1.0f;
         else if (black_bitcount == white_bitcount) result = 0.0f;
         else result = 1.0f;
 
@@ -75,7 +74,7 @@ public:
             for (unsigned code : eats) {
                 Board tmp = Board(before);
                 tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-                float value = tuple->get_board_value(tmp);
+                float value = tuple->get_board_value(tmp, color);
                 if (value > best_value) {
                     best_value = value;
                     best_code = code;
@@ -86,7 +85,7 @@ public:
             for (unsigned code : moves) {
                 Board tmp = Board(before);
                 tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-                float value = tuple->get_board_value(tmp);
+                float value = tuple->get_board_value(tmp, color);
                 if (value > best_value) {
                     best_value = value;
                     best_code = code;

@@ -72,7 +72,7 @@ int main(int argc, const char* argv[]) {
         stat.close_episode(win.role());
 
         // after training some episodes, test MCTS playing result
-        if (stat.episode_count() % 1000000 == 0) {
+        if (stat.episode_count() % 100000 == 0) {
             mcts.playing();
         }
     }
