@@ -33,12 +33,12 @@ public:
         return true;
     }
 
-    Player& take_turns(Player& play1, Player& play2) {
+    TrainingPlayer& take_turns(TrainingPlayer& play1, TrainingPlayer& play2) {
         ep_time = millisec();
         return (turn_count++ % 2) ? play2 : play1;
     }
 
-    Player& last_turns(Player& play1, Player& play2) {
+    TrainingPlayer& last_turns(TrainingPlayer& play1, TrainingPlayer& play2) {
         return take_turns(play2, play1);
     }
 

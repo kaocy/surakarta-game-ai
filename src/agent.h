@@ -32,9 +32,9 @@ protected:
  * dummy player
  * select a legal random action
  */
-class Player : public RandomAgent {
+class TrainingPlayer : public RandomAgent {
 public:
-    Player(unsigned color, Tuple *tuple) : RandomAgent(), color(color), tuple(tuple) {}
+    TrainingPlayer(unsigned color, Tuple *tuple) : RandomAgent(), color(color), tuple(tuple) {}
     std::string role() { return color ? "White" : "Black"; }
 
     virtual void open_episode() {
@@ -49,12 +49,13 @@ public:
 
         float result;
         //std::cout<<black_bitcount<<" "<<white_bitcount<<std::endl;
-        if      (black_bitcount < white_bitcount) result = -1.0f;
-        else if (black_bitcount == white_bitcount) result = 0.0f;
-        else result = 1.0f;
+        if      (black_bitcount < white_bitcount)   result = -1.0f;
+        else if (black_bitcount == white_bitcount)  result = 0.0f;
+        else                                        result = 1.0f;
 
-        for (int i = record.size() - 1; i >= 0; i--)
+        for (int i = record.size() - 1; i >= 0; i--) {
             tuple->train_weight(record[i], result);
+        }
     }
 
 public:
@@ -64,7 +65,7 @@ public:
         before.get_possible_eat(eats, color);
         before.get_possible_move(moves, color);
 
-        // exploitation
+        // exploitation - choose best action with highest value
         if (dis(engine) < epsilon) {
             float best_value = -1e9;
             unsigned best_code = 0;
@@ -99,7 +100,7 @@ public:
                 else                    return Action::Move(best_code);
             }       
         }
-        // exploration
+        // exploration - random play
         else {
             Board tmp = Board(before);
             std::shuffle(eats.begin(), eats.end(), engine);
@@ -126,10 +127,8 @@ public:
     }
 
 private:
-    std::vector<Board> record;
-
-private:
     unsigned color; // 0 for black or 1 for white
-    Tuple *tuple;
     float epsilon;
+    std::vector<Board> record;
+    Tuple *tuple;
 };

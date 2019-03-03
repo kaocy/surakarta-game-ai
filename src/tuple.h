@@ -19,7 +19,8 @@ public:
 
     }
 
-    void train_weight(const Board &b, float result) {  // 1 black win -1 white win
+    void train_weight(const Board &b, float result) {
+        // result: 1 black win -1 white win
         set_board_value(b, result);
     }
 
@@ -96,9 +97,12 @@ public:
     void set_board_value(const Board &b, float value) {
         uint32_t o, s, l;
         board_to_tuple(b, o, s, l);
-        unsigned outer_head = (o >> 27) & 0xF, outer_index = o & ((1 << 27) - 1) , outer_sign = (o >> 31) ? -1.0f : 1.0f ;
-        unsigned small_head = (s >> 27) & 0xF, small_index = s & ((1 << 27) - 1) , samll_sign = (s >> 31) ? -1.0f : 1.0f ;
-        unsigned large_head = (l >> 27) & 0xF, large_index = l & ((1 << 27) - 1) , large_sign = (l >> 31) ? -1.0f : 1.0f ;
+        unsigned outer_head = (o >> 27) & 0xF, outer_index = o & ((1 << 27) - 1);
+        unsigned small_head = (s >> 27) & 0xF, small_index = s & ((1 << 27) - 1);
+        unsigned large_head = (l >> 27) & 0xF, large_index = l & ((1 << 27) - 1);
+        float outer_sign = (o >> 31) ? -1.0f : 1.0f;
+        float samll_sign = (s >> 31) ? -1.0f : 1.0f;
+        float large_sign = (l >> 31) ? -1.0f : 1.0f;
 
         outer[outer_head][outer_index] += alpha * (value - outer[outer_head][outer_index] * outer_sign ) * outer_sign;
         small[small_head][small_index] += alpha * (value - small[small_head][small_index] * samll_sign ) * samll_sign;

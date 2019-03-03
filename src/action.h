@@ -10,7 +10,7 @@ public:
 	Action(const Action& a) : code(a.code) {}
 	virtual ~Action() {}
 
-	class Eat; // create a eating action
+	class Eat; 	// create a eating action
 	class Move; // create a moving action
 
 public:

@@ -9,9 +9,9 @@
 
 class MCTS {
 public:
-    MCTS(Tuple *tuple) : tuple(tuple) { engine.seed(80);}
+    MCTS(Tuple *tuple) : tuple(tuple) { engine.seed(80); }
 
-    void playing() { 
+    void playing() {
         std::uniform_real_distribution<> dis(0, 1);
         std::vector<unsigned> eats, moves;
         int black_win = 0, white_win = 0;
@@ -21,59 +21,57 @@ public:
             Board board;
             int player = 0, count = 0;
             while (!board.game_over() && count++ < 200) {
-                if (player == 0) { // use MCTS to select action
+                // MCTS with tuple network
+                if (player == 0) {
                     board = find_next_move(board, player);
-                }               
-                else { // random play
+                }
+                // random play with eat first
+                else {
                     eats.clear(); moves.clear();
                     board.get_possible_eat(eats, player);
                     board.get_possible_move(moves, player);
                     
-                    float best_value = -1e9;
-                    unsigned best_code = 0;
-                    Board best_state;
-                    int best_action_type;
+                    // float best_value = -1e9;
+                    // unsigned best_code = 0;
+                    // Board best_state;
+                    // int best_action_type;
 
-                    for (unsigned code : eats) {
-                        Board tmp = Board(board);
-                        tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-                        float value = tuple->get_board_value(tmp, player);
-                        if (value > best_value) {
-                            best_value = value;
-                            best_code = code;
-                            best_state = tmp;
-                            best_action_type = 0;
-                        }
-                    }
-                    for (unsigned code : moves) {
-                        Board tmp = Board(board);
-                        tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-                        float value = tuple->get_board_value(tmp, player);
-                        if (value > best_value) {
-                            best_value = value;
-                            best_code = code;
-                            best_state = tmp;
-                            best_action_type = 1;
-                        }
-                    }
-                    if (best_code != 0) {
-                        if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                        else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                    }
-                    // std::shuffle(eats.begin(), eats.end(), engine);
-                    // std::shuffle(moves.begin(), moves.end(), engine);
-
-                    // int size1 = eats.size(), size2 = moves.size();
-                    // if (dis(engine) * (size1 + size2) < size1) {
-                    //     if (eats.size() > 0) {
-                    //         board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                    // for (unsigned code : eats) {
+                    //     Board tmp = Board(board);
+                    //     tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
+                    //     float value = tuple->get_board_value(tmp, player);
+                    //     if (value > best_value) {
+                    //         best_value = value;
+                    //         best_code = code;
+                    //         best_state = tmp;
+                    //         best_action_type = 0;
                     //     }
                     // }
-                    // else {
-                    //     if (moves.size() > 0) {
-                    //         board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                    // for (unsigned code : moves) {
+                    //     Board tmp = Board(board);
+                    //     tmp.move(code & 0b111111, (code >> 6) & 0b111111);
+                    //     float value = tuple->get_board_value(tmp, player);
+                    //     if (value > best_value) {
+                    //         best_value = value;
+                    //         best_code = code;
+                    //         best_state = tmp;
+                    //         best_action_type = 1;
                     //     }
                     // }
+                    // if (best_code != 0) {
+                    //     if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    //     else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    // }
+
+                    std::shuffle(eats.begin(), eats.end(), engine);
+                    std::shuffle(moves.begin(), moves.end(), engine);
+
+                    if (eats.size() > 0) {
+                        board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                    }
+                    else if (moves.size() > 0) {
+                        board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                    }
                 }
                 player ^= 1; // toggle player
             }
@@ -111,10 +109,8 @@ public:
             // Phase 1 - Selection 
             TreeNode* leaf = selection(&root);
             // Phase 2 - Expansion
-            if (leaf->is_explore())
-                leaf = expansion(leaf);
-            else
-                leaf->set_explore();
+            if (leaf->is_explore()) leaf = expansion(leaf);
+            else                    leaf->set_explore();
             // Phase 3 - Simulation
             int value = simulation(leaf);
             // Phase 4 - Backpropagation
@@ -127,8 +123,8 @@ private:
     TreeNode* selection(TreeNode* root) {
         //std::cout << "selection\n";
         TreeNode* node = root;
-        int root_color = root->get_player();
         TreeNode* best_node = nullptr;
+        int root_color = root->get_player();       
         float layer = 1.0f;  // 1 mine -1 theirs
         while (node->get_child().size() != 0) {
             // std::cout << "--------find child---------\n";
@@ -142,7 +138,8 @@ private:
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
                 float h = tuple->get_board_value(child[i].get_board(), root_color);
-                float value = -w / n + 0.5f*sqrt(2 * log2(t) / n) + h / n;
+                h = 0.0;
+                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + h / n;
                 
                 if (best_value < value) {
                     best_value = value;
@@ -231,6 +228,12 @@ private:
             std::shuffle(moves.begin(), moves.end(), engine);
 
             int size1 = eats.size(), size2 = moves.size();
+            // if (eats.size() > 0) {
+            //     board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+            // }
+            // else if (moves.size() > 0) {
+            //     board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+            // }
             if (dis(engine) * (size1 + size2) < size1) {
                 if (eats.size() > 0) {
                     board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
@@ -256,11 +259,11 @@ private:
     }
 
     void backpropagation(TreeNode *node, int value) {
-        //std::cout << "backpropagation\n";
+        // std::cout << "backpropagation\n";
         node->add_visit_count();
         if (value == 1) node->add_win_score();
         while (node->get_parent() != NULL) {
-            //std::cout << node->get_parent()->get_win_score() << " " << node->get_parent()->get_visit_count() << std::endl;
+            // std::cout << node->get_parent()->get_win_score() << " " << node->get_parent()->get_visit_count() << std::endl;
             value *= -1;
             node = node->get_parent();
             node->add_visit_count();

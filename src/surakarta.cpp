@@ -41,7 +41,7 @@ int main(int argc, const char* argv[]) {
 
     Tuple tuple;
     Statistic stat(total, block, limit);
-    Player play1(0, &tuple), play2(1, &tuple);
+    TrainingPlayer play1(0, &tuple), play2(1, &tuple);
     MCTS mcts(&tuple);
 
     if (load.size()) {
@@ -58,14 +58,14 @@ int main(int argc, const char* argv[]) {
         Episode& game = stat.back();
 
         while (true) {
-            Player& who = game.take_turns(play1, play2);
+            TrainingPlayer& who = game.take_turns(play1, play2);
             Action action = who.take_action(game.state());
 
             if (game.apply_action(action) != true) break;
             if (who.check_for_win(game.state())) break;
         }
 
-        Player& win = game.last_turns(play1, play2);
+        TrainingPlayer& win = game.last_turns(play1, play2);
 
         play1.close_episode();
         play2.close_episode();

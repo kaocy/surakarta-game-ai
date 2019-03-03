@@ -64,11 +64,10 @@ public:
         for (auto node : child) {
             if (node.visit_count > max_visit_count) {
                 max_visit_count = node.visit_count;
-                
                 best_node = node;
             }
         }
-        // std::cout<< best_node.visit_count<<std::endl;
+        // std::cout << best_node.visit_count << std::endl;
         return best_node;
     }
 
