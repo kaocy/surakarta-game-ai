@@ -9,92 +9,11 @@
 
 class MCTS {
 public:
-    MCTS(Tuple *tuple) : tuple(tuple) { engine.seed(80); }
+    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(80); }
 
-    void playing() {
-        std::uniform_real_distribution<> dis(0, 1);
-        std::vector<unsigned> eats, moves;
-        int black_win = 0, white_win = 0;
-
-        for (int i = 0; i < 50; i++) {
-            //std::cout << i << std::endl;
-            Board board;
-            int player = 0, count = 0;
-            while (!board.game_over() && count++ < 200) {
-                // MCTS with tuple network
-                if (player == 0) {
-                    board = find_next_move(board, player);
-                }
-                // random play with eat first
-                else {
-                    eats.clear(); moves.clear();
-                    board.get_possible_eat(eats, player);
-                    board.get_possible_move(moves, player);
-                    
-                    // float best_value = -1e9;
-                    // unsigned best_code = 0;
-                    // Board best_state;
-                    // int best_action_type;
-
-                    // for (unsigned code : eats) {
-                    //     Board tmp = Board(board);
-                    //     tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-                    //     float value = tuple->get_board_value(tmp, player);
-                    //     if (value > best_value) {
-                    //         best_value = value;
-                    //         best_code = code;
-                    //         best_state = tmp;
-                    //         best_action_type = 0;
-                    //     }
-                    // }
-                    // for (unsigned code : moves) {
-                    //     Board tmp = Board(board);
-                    //     tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-                    //     float value = tuple->get_board_value(tmp, player);
-                    //     if (value > best_value) {
-                    //         best_value = value;
-                    //         best_code = code;
-                    //         best_state = tmp;
-                    //         best_action_type = 1;
-                    //     }
-                    // }
-                    // if (best_code != 0) {
-                    //     if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                    //     else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                    // }
-
-                    std::shuffle(eats.begin(), eats.end(), engine);
-                    std::shuffle(moves.begin(), moves.end(), engine);
-
-                    if (eats.size() > 0) {
-                        board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-                    }
-                    else if (moves.size() > 0) {
-                        board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-                    }
-                }
-                player ^= 1; // toggle player
-            }
-
-            int black_bitcount = Bitcount(board.get_board(0));
-            int white_bitcount = Bitcount(board.get_board(1));
-            if (black_bitcount == 0) {
-                white_win++;
-                // std::cout << "White wins\n";
-            }    
-            else if (white_bitcount == 0) {
-                black_win++;
-                // std::cout << "Black wins\n";
-            }
-            else {
-                // std::cout << "Too Long" << black_bitcount << " "<< white_bitcount <<std::endl;
-            }
-        }
-
-        std::cout << "Playing 50 episodes: \n";
-        std::cout << std::fixed << std::setprecision(1);
-        std::cout << "Black: " << black_win * 100.0 / (black_win + white_win) << " %" << std::endl;
-        std::cout << "White: " << white_win * 100.0 / (black_win + white_win) << " %\n" << std::endl;
+    void playing(Board &board, int player) {
+        // play with MCTS
+        board = find_next_move(board, player);
     }
 
     // return board after best action
@@ -138,9 +57,11 @@ private:
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
                 float h = tuple->get_board_value(child[i].get_board(), root_color);
-                h = 0.0;
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + h / n;
-                
+
+                // check whether MCTS with tuple value
+                if (!with_tuple)    h = 0.0;
+
+                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + h / n;       
                 if (best_value < value) {
                     best_value = value;
                     best_node = &child[i];
@@ -273,5 +194,6 @@ private:
 
 private:
     Tuple *tuple;
+    bool with_tuple;
     std::default_random_engine engine;
 };

@@ -48,7 +48,7 @@ public:
         int white_bitcount = Bitcount(last.get_board(1));
 
         float result;
-        //std::cout<<black_bitcount<<" "<<white_bitcount<<std::endl;
+        // std::cout << black_bitcount << " " << white_bitcount << std::endl;
         if      (black_bitcount < white_bitcount)   result = -1.0f;
         else if (black_bitcount == white_bitcount)  result = 0.0f;
         else                                        result = 1.0f;
@@ -59,7 +59,7 @@ public:
     }
 
 public:
-    virtual Action take_action(const Board& before) {
+    virtual Action take_action(const Board& before) { // for training
         std::vector<unsigned> moves;
         std::vector<unsigned> eats;
         before.get_possible_eat(eats, color);
@@ -131,4 +131,77 @@ private:
     float epsilon;
     std::vector<Board> record;
     Tuple *tuple;
+};
+
+class TuplePlayer : public RandomAgent {
+public:
+    TuplePlayer(Tuple *tuple) : RandomAgent(), tuple(tuple) {}
+
+public:
+    void playing(Board &board, int player) {
+        // choose best action with tuple value
+        std::vector<unsigned> eats, moves;
+        eats.clear(); moves.clear();
+        board.get_possible_eat(eats, player);
+        board.get_possible_move(moves, player);
+
+        float best_value = -1e9;
+        unsigned best_code = 0;
+        Board best_state;
+        int best_action_type;
+
+        for (unsigned code : eats) {
+            Board tmp = Board(board);
+            tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
+            float value = tuple->get_board_value(tmp, player);
+            if (value > best_value) {
+                best_value = value;
+                best_code = code;
+                best_state = tmp;
+                best_action_type = 0;
+            }
+        }
+        for (unsigned code : moves) {
+            Board tmp = Board(board);
+            tmp.move(code & 0b111111, (code >> 6) & 0b111111);
+            float value = tuple->get_board_value(tmp, player);
+            if (value > best_value) {
+                best_value = value;
+                best_code = code;
+                best_state = tmp;
+                best_action_type = 1;
+            }
+        }
+        if (best_code != 0) {
+            if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
+            else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
+        }
+    }
+
+private:
+    Tuple *tuple;
+};
+
+class RandomPlayer : public RandomAgent {
+public:
+    RandomPlayer() : RandomAgent() {}
+
+public:
+    void playing(Board &board, int player) {
+        // random play with eat first
+        std::vector<unsigned> eats, moves;
+        eats.clear(); moves.clear();
+        board.get_possible_eat(eats, player);
+        board.get_possible_move(moves, player);
+
+        std::shuffle(eats.begin(), eats.end(), engine);
+        std::shuffle(moves.begin(), moves.end(), engine);
+
+        if (eats.size() > 0) {
+            board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+        }
+        else if (moves.size() > 0) {
+            board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+        }
+    }
 };
