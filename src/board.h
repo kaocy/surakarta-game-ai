@@ -28,6 +28,7 @@ public:
 
 public:
     Board() : board_white(0x007E7E0000000000ULL), board_black(0x00000000007E7E00ULL) {}
+    // Board() : board_white(0x00007E0000000000ULL), board_black(0x00000000007E0000ULL) {}
     Board(const Board& b) = default;
     Board& operator =(const Board& b) = default;
     data& get_board(unsigned int i) {

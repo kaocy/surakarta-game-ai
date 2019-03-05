@@ -9,14 +9,19 @@
 #include "utilities.h"
 #include "mcts.h"
 
+std::string Method[]={
+"MCTS_with_tuple", "MCTS", "tuple", "eat_first"
+};
+
 void fight(int player1, int player2, Tuple *tuple) {
     /** 
      * player 
-     * 1 : MCTS with tuple
-     * 2 : MCTS
-     * 3 : tuple
-     * 4 : eat first
+     * 0 : MCTS with tuple
+     * 1 : MCTS
+     * 2 : tuple
+     * 3 : eat first
      */
+    std::cout << Method[player1] << " VS " << Method[player2] << std::endl;
     MCTS mcts_tuple(tuple, true), mcts(tuple, false);
     TuplePlayer tuple_player(tuple);
     RandomPlayer random_player;
@@ -24,46 +29,27 @@ void fight(int player1, int player2, Tuple *tuple) {
     int black_win = 0, white_win = 0;
 
     for (int i = 0; i < 50; i++) {
-        std::cout << i << std::endl;
+        // std::cout << i << std::endl;
         Board board;
-        int color = 0, count = 0;
+        int color = 0, count = 0, current;
 
         while (!board.game_over() && count++ < 200) {
-            if (color == 0) {
-                switch (player1) {
-                    case 1:
-                        mcts_tuple.playing(board, color);
-                        break;
-                    case 2:
-                        mcts.playing(board, color);
-                        break;
-                    case 3:
-                        tuple_player.playing(board, color);
-                        break;
-                    case 4:
-                        random_player.playing(board, color);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else {
-                switch (player1) {
-                    case 1:
-                        mcts_tuple.playing(board, color);
-                        break;
-                    case 2:
-                        mcts.playing(board, color);
-                        break;
-                    case 3:
-                        tuple_player.playing(board, color);
-                        break;
-                    case 4:
-                        random_player.playing(board, color);
-                        break;
-                    default:
-                        break;
-                }
+            current = color ? player2 : player1;
+            switch (current) {
+                case 0:
+                    mcts_tuple.playing(board, color);
+                    break;
+                case 1:
+                    mcts.playing(board, color);
+                    break;
+                case 2:
+                    tuple_player.playing(board, color);
+                    break;
+                case 3:
+                    random_player.playing(board, color);
+                    break;
+                default:
+                    break;
             }
             color ^= 1; // toggle color
         }
@@ -146,8 +132,10 @@ int main(int argc, const char* argv[]) {
         stat.close_episode(win.role());
 
         // after training some episodes, test playing result
-        if (stat.episode_count() % 50000 == 0) {
-            fight(3, 4, &tuple);
+        if (stat.episode_count() % 100000 == 0) {
+            fight(0, 3, &tuple);
+            fight(0, 1, &tuple);
+            fight(2, 3, &tuple);
         }
     }
 

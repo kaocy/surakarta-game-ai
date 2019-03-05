@@ -9,7 +9,7 @@
 
 class MCTS {
 public:
-    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(80); }
+    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(180); }
 
     void playing(Board &board, int player) {
         // play with MCTS
@@ -59,7 +59,7 @@ private:
                 float h = tuple->get_board_value(child[i].get_board(), root_color);
 
                 // check whether MCTS with tuple value
-                if (!with_tuple)    h = 0.0;
+                if (!with_tuple)    h = 0.0f;
 
                 float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + h / n;       
                 if (best_value < value) {
@@ -148,23 +148,23 @@ private:
             std::shuffle(eats.begin(), eats.end(), engine);
             std::shuffle(moves.begin(), moves.end(), engine);
 
-            int size1 = eats.size(), size2 = moves.size();
-            // if (eats.size() > 0) {
-            //     board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-            // }
-            // else if (moves.size() > 0) {
-            //     board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-            // }
-            if (dis(engine) * (size1 + size2) < size1) {
-                if (eats.size() > 0) {
-                    board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-                }
+            if (eats.size() > 0) {
+                board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
             }
-            else {
-                if (moves.size() > 0) {
-                    board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-                }
+            else if (moves.size() > 0) {
+                board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
             }
+            // int size1 = eats.size(), size2 = moves.size();
+            // if (dis(engine) * (size1 + size2) < size1) {
+            //     if (eats.size() > 0) {
+            //         board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+            //     }
+            // }
+            // else {
+            //     if (moves.size() > 0) {
+            //         board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+            //     }
+            // }
 
             player ^= 1; // toggle player
         }

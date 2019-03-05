@@ -20,7 +20,7 @@ public:
 
 class RandomAgent : public Agent {
 public:
-    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(197); }
+    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(7); }
     virtual ~RandomAgent() {}
 
 protected:
@@ -39,7 +39,7 @@ public:
 
     virtual void open_episode() {
         record.clear();
-        epsilon = 0.7;
+        epsilon = 0.9f;
     }
 
     virtual void close_episode() {

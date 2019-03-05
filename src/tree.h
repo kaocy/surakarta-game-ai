@@ -51,10 +51,6 @@ public:
         return child;
     }
     TreeNode& get_child_node(int index) {
-        if (index < 0 || index >= child.size()) {
-            std::cout << "Out of range\n";
-            index = (index % child.size() + child.size()) % child.size();
-        }
         return child.at(index);
     }
 
