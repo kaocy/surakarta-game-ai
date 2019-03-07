@@ -12,66 +12,30 @@ public:
     TreeNode(const TreeNode& node) = default;
     TreeNode& operator =(const TreeNode& node) = default;
 
-    TreeNode* get_parent() {
-        return parent;
-    }
-    void set_parent(TreeNode *parent) {
-        this->parent = parent;
-    }
+    TreeNode* get_parent() { return parent; }
+    void set_parent(TreeNode *parent) { this->parent = parent; }
 
-    Board& get_board() {
-        return board;
-    }
-    const Board& get_board() const {
-        return board;
-    }
+    Board& get_board() { return board; }
+    const Board& get_board() const { return board; }
 
-    int get_win_score() {
-        return win_score;
-    }
-    void add_win_score() {
-        win_score++;
-    }
+    int get_win_score() { return win_score; }
+    void add_win_score() { win_score++; }
 
-    int get_visit_count() {
-        return visit_count;
-    }
-    void add_visit_count() {
-        visit_count++;
-    }
+    int get_visit_count() { return visit_count; }
+    void add_visit_count() { visit_count++; }
 
-    int get_player() {
-        return player;
-    }
-    void set_player(int player) {
-        this->player = player;
-    }
+    int get_player() { return player; }
+    void set_player(int player) { this->player = player; }
 
-    std::vector<TreeNode>& get_child() {
-        return child;
-    }
-    TreeNode& get_child_node(int index) {
-        return child.at(index);
-    }
+    std::vector<TreeNode>& get_all_child() { return child; }
+    TreeNode& get_child(int index) { return child.at(index); }
+
+    bool is_explore() { return explore; }
+    void set_explore() { explore = true; }
 
     TreeNode get_best_child_node() {
-        int max_visit_count = 0;
-        TreeNode best_node;
-        for (auto node : child) {
-            if (node.visit_count > max_visit_count) {
-                max_visit_count = node.visit_count;
-                best_node = node;
-            }
-        }
-        // std::cout << best_node.visit_count << std::endl;
-        return best_node;
-    }
-
-    bool is_explore() {
-        return explore;
-    }
-    void set_explore() {
-        explore = true;
+        return *std::max_element(child.begin(), child.end(),
+                                 [](TreeNode A, TreeNode B) { return A.visit_count < B.visit_count; });
     }
 
 private:
@@ -80,8 +44,8 @@ private:
     int win_score;
     int visit_count;
     int player; // current player
-    std::vector<TreeNode> child;
     bool explore;
+    std::vector<TreeNode> child; 
 };
 
 class Tree {

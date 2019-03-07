@@ -79,9 +79,7 @@ public:
         const_cast<Statistic&>(*this).block = block_temp;
     }
 
-    bool is_finished() const {
-        return count >= total;
-    }
+    bool is_finished() const { return count >= total; }
 
     void open_episode(const std::string& flag = "") {
         if (count++ >= limit) data.pop_front();
@@ -101,12 +99,8 @@ public:
         while (i--) it++;
         return *it;
     }
-    Episode& front() {
-        return data.front();
-    }
-    Episode& back() {
-        return data.back();
-    }
+    Episode& front() { return data.front(); }
+    Episode& back() { return data.back(); }
 
     friend std::ostream& operator <<(std::ostream& out, const Statistic& stat) {
         for (const Episode& rec : stat.data) out << rec << std::endl;

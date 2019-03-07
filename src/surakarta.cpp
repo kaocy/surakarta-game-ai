@@ -132,7 +132,7 @@ int main(int argc, const char* argv[]) {
         stat.close_episode(win.role());
 
         // after training some episodes, test playing result
-        if (stat.episode_count() % 100000 == 0) {
+        if (stat.episode_count() % 1000 == 0) {
             fight(0, 3, &tuple);
             fight(0, 1, &tuple);
             fight(2, 3, &tuple);

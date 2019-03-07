@@ -40,20 +40,19 @@ public:
 
 private:
     TreeNode* selection(TreeNode* root) {
-        //std::cout << "selection\n";
+        // std::cout << "selection\n";
         TreeNode* node = root;
         TreeNode* best_node = nullptr;
         int root_color = root->get_player();       
         float layer = 1.0f;  // 1 mine -1 theirs
-        while (node->get_child().size() != 0) {
+        while (node->get_all_child().size() != 0) {
             // std::cout << "--------find child---------\n";
             float best_value = -1e9;
             float t = float(node->get_visit_count()) + 1;
-            std::vector<TreeNode> &child = node->get_child();
+            std::vector<TreeNode> &child = node->get_all_child();
+
             // find the child with maximum UCB value plus n-tuple weight
             for (size_t i = 0; i < child.size(); i++) {
-                // std::cout << &child[i] << std::endl;
-                // if (!child[i].is_explore())  return &child[i];
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
                 float h = tuple->get_board_value(child[i].get_board(), root_color);
@@ -67,16 +66,14 @@ private:
                     best_node = &child[i];
                 }
             }
-            // std::cout << "--------------------------\n";
             node = best_node;
             layer *= -1.0f;
-            // std::cout << &node << std::endl;
         }
         return node;
     }
 
     TreeNode* expansion(TreeNode* leaf) {
-        //std::cout << "expansion\n";
+        // std::cout << "expansion\n";
         const Board& board = leaf->get_board();
         int player = leaf->get_player();
 
@@ -91,38 +88,24 @@ private:
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-            leaf->get_child().push_back(TreeNode(tmp, player ^ 1, leaf));
+            leaf->get_all_child().push_back(TreeNode(tmp, player ^ 1, leaf));
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-            leaf->get_child().push_back(TreeNode(tmp, player ^ 1, leaf));
+            leaf->get_all_child().push_back(TreeNode(tmp, player ^ 1, leaf));
         }
 
         // there are no actions can be made
-        if (leaf->get_child().size() == 0) {
-            //std::cout << "expansion size = 0\n";
-            //Board::data black = board.get_board(0);
-            //Board::data white = board.get_board(1);
-            //std::cout << Bitcount(black) << " " << Bitcount(white) << std::endl;
-            // for (unsigned i = 0; i < 64; i++) {
-            //     if (black & (1ULL << i))    std::cout << 'O';
-            //     else if (white & (1ULL << i))    std::cout << 'X';
-            //     else    std::cout << '*';
-            //     std::cout << ' ';
-            //     if (i % 8 == 7) std::cout << std::endl;
-            // }
-            // std::cout << "---------------\n";
-            return leaf;
-        }
+        if (leaf->get_all_child().size() == 0) return leaf;
 
         // randomly pick one child
-        std::uniform_int_distribution<int> dis(0, leaf->get_child().size() - 1);
-        return &(leaf->get_child_node(dis(engine)));
+        std::uniform_int_distribution<int> dis(0, leaf->get_all_child().size() - 1);
+        return &(leaf->get_child(dis(engine)));
     }
 
     int simulation(TreeNode *leaf) {
-        //std::cout << "simulation\n";
+        // std::cout << "simulation\n";
         TreeNode tmp(*leaf);
         Board& board = tmp.get_board();
         int player = tmp.get_player();
@@ -172,23 +155,20 @@ private:
         // the one has more piece wins
         int black_bitcount = Bitcount(board.get_board(0));
         int white_bitcount = Bitcount(board.get_board(1));
-        // std::cout << black_bitcount << " " << white_bitcount << std::endl; 
-        if (origin_player == 1 && black_bitcount < white_bitcount)  return 1;
+        // std::cout << black_bitcount << " " << white_bitcount << std::endl;
         if (origin_player == 0 && black_bitcount > white_bitcount)  return 1;
+        if (origin_player == 1 && black_bitcount < white_bitcount)  return 1;
         if (black_bitcount == white_bitcount) return 0;
         return -1;
     }
 
     void backpropagation(TreeNode *node, int value) {
-        // std::cout << "backpropagation\n";
-        node->add_visit_count();
-        if (value == 1) node->add_win_score();
-        while (node->get_parent() != NULL) {
-            // std::cout << node->get_parent()->get_win_score() << " " << node->get_parent()->get_visit_count() << std::endl;
-            value *= -1;
-            node = node->get_parent();
+        // std::cout << "backpropagation\n";       
+        while (node != NULL) {
             node->add_visit_count();
             if (value == 1) node->add_win_score();
+            node = node->get_parent();
+            value *= -1;
         }
     }
 
