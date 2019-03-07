@@ -1,14 +1,44 @@
 #pragma once
+#include <string>
+#include <sstream>
+#include <map>
+#include <fstream>
 #include <vector>
 #include "board.h"
 #include "weight.h"
 
 class Tuple {
 public:
-    Tuple() : alpha(0.01f) {
-        init_weight();
+    Tuple(const std::string& args = "") : alpha(0.01f) {       
+        std::stringstream ss(args);
+        for (std::string pair; ss >> pair; ) {
+            std::string key = pair.substr(0, pair.find('='));
+            std::string value = pair.substr(pair.find('=') + 1);
+            meta[key] = { value };
+        }
+        if (meta.find("alpha") != meta.end())
+            alpha = float(meta["alpha"]);
+        if (meta.find("load") != meta.end()) // pass load=... to load from a specific file
+            load_weights(meta["load"]);
+        else
+            init_weight();
+    }
+    ~Tuple() {
+        if (meta.find("save") != meta.end()) // pass save=... to save to a specific file
+            save_weights(meta["save"]);
     }
 
+private:
+    typedef std::string key;
+    struct value {
+        std::string value;
+        operator std::string() const { return value; }
+        template<typename numeric, typename = typename std::enable_if<std::is_arithmetic<numeric>::value, numeric>::type>
+        operator numeric() const { return numeric(std::stod(value)); }
+    };
+    std::map<key, value> meta;
+
+private:
     void init_weight() {
         for (int i = 0; i < 13; i++) {
             // 3^16 = 43046721;
@@ -16,9 +46,36 @@ public:
             small.emplace_back(43046721);
             large.emplace_back(43046721);
         }
-
     }
 
+    void load_weights(const std::string& path) {
+        std::ifstream in(path, std::ios::in | std::ios::binary);
+        if (!in.is_open()) std::exit(-1);
+        uint32_t size;
+        in.read(reinterpret_cast<char*>(&size), sizeof(size));
+
+        outer.resize(size / 3); 
+        for (Weight& w : outer) in >> w;
+        small.resize(size / 3);
+        for (Weight& w : small) in >> w;
+        large.resize(size / 3);
+        for (Weight& w : large) in >> w;
+
+        in.close();
+    }
+
+    void save_weights(const std::string& path) {
+        std::ofstream out(path, std::ios::out | std::ios::binary | std::ios::trunc);
+        if (!out.is_open()) std::exit(-1);
+        uint32_t size = outer.size() * 3;
+        out.write(reinterpret_cast<char*>(&size), sizeof(size));
+        for (Weight& w : outer) out << w;
+        for (Weight& w : small) out << w;
+        for (Weight& w : large) out << w;
+        out.close();
+    }
+
+public:
     void train_weight(const Board &b, float result) {
         // result: 1 black win -1 white win
         set_board_value(b, result);

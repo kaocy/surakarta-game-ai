@@ -9,9 +9,7 @@
 #include "utilities.h"
 #include "mcts.h"
 
-std::string Method[]={
-"MCTS_with_tuple", "MCTS", "tuple", "eat_first"
-};
+std::string Method[] = {"MCTS_with_tuple", "MCTS", "tuple", "eat_first"};
 
 void fight(int player1, int player2, Tuple *tuple) {
     /** 
@@ -76,7 +74,7 @@ int main(int argc, const char* argv[]) {
     std::cout << std::endl << std::endl;
 
     size_t total = 1000, block = 0, limit = 0;
-    std::string play1_args, play2_args;
+    std::string play1_args, play2_args, tuple_args;
     std::string load, save;
     bool summary = false;
     for (int i = 1; i < argc; i++) {
@@ -91,6 +89,8 @@ int main(int argc, const char* argv[]) {
             play1_args = para.substr(para.find("=") + 1);
         } else if (para.find("--play2=") == 0) {
             play2_args = para.substr(para.find("=") + 1);
+        } else if (para.find("--tuple=") == 0) {
+            tuple_args = para.substr(para.find("=") + 1);
         } else if (para.find("--load=") == 0) {
             load = para.substr(para.find("=") + 1);
         } else if (para.find("--save=") == 0) {
@@ -100,7 +100,7 @@ int main(int argc, const char* argv[]) {
         }
     }
 
-    Tuple tuple;
+    Tuple tuple(tuple_args);
     Statistic stat(total, block, limit);
     TrainingPlayer play1(0, &tuple), play2(1, &tuple);
 
