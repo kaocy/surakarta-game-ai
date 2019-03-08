@@ -127,12 +127,12 @@ int main(int argc, const char* argv[]) {
 
         TrainingPlayer& win = game.last_turns(play1, play2);
 
-        play1.close_episode();
-        play2.close_episode();
+        play1.close_episode(win.role());
+        play2.close_episode(win.role());
         stat.close_episode(win.role());
 
         // after training some episodes, test playing result
-        if (stat.episode_count() % 1000 == 0) {
+        if (stat.episode_count() % total == 0) {
             fight(0, 3, &tuple);
             fight(0, 1, &tuple);
             fight(2, 3, &tuple);

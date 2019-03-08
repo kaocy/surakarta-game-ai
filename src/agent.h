@@ -12,7 +12,7 @@ public:
     Agent() {}
     virtual ~Agent() {}
     virtual void open_episode() {}
-    virtual void close_episode() {}
+    virtual void close_episode(const std::string& flag = "") {}
     virtual Action take_action(const Board& b) { return Action(); }
     virtual bool check_for_win(const Board& b) { return b.game_over(); }
 };
@@ -41,16 +41,16 @@ public:
         epsilon = 0.9f;
     }
 
-    virtual void close_episode() {
-        Board last = record.back();
-        int black_bitcount = Bitcount(last.get_board(0));
-        int white_bitcount = Bitcount(last.get_board(1));
+    virtual void close_episode(const std::string& flag = "") {
+        // Board last = record.back();
+        // int black_bitcount = Bitcount(last.get_board(0));
+        // int white_bitcount = Bitcount(last.get_board(1));
 
-        float result;
+        float result = (flag == "Black") ? 1.0f : -1.0f;
         // std::cout << black_bitcount << " " << white_bitcount << std::endl;
-        if      (black_bitcount < white_bitcount)   result = -1.0f;
-        else if (black_bitcount == white_bitcount)  result = 0.0f;
-        else                                        result = 1.0f;
+        // if      (black_bitcount < white_bitcount)   result = -1.0f;
+        // else if (black_bitcount == white_bitcount)  result = 0.0f;
+        // else                                        result = 1.0f;
 
         for (int i = record.size() - 1; i >= 0; i--) {
             tuple->train_weight(record[i], result);
@@ -59,10 +59,12 @@ public:
 
 public:
     virtual Action take_action(const Board& before) { // for training
-        std::vector<unsigned> moves;
-        std::vector<unsigned> eats;
+        std::vector<unsigned> moves, eats;
         before.get_possible_eat(eats, color);
         before.get_possible_move(moves, color);
+
+        std::shuffle(eats.begin(), eats.end(), engine);
+        std::shuffle(moves.begin(), moves.end(), engine);
 
         // exploitation - choose best action with highest value
         if (dis(engine) < epsilon) {
@@ -102,9 +104,6 @@ public:
         // exploration - random play
         else {
             Board tmp = Board(before);
-            std::shuffle(eats.begin(), eats.end(), engine);
-            std::shuffle(moves.begin(), moves.end(), engine);
-
             int size1 = eats.size(), size2 = moves.size();
             if (dis(engine) * (size1 + size2) < size1) {
                 if (eats.size() > 0) {

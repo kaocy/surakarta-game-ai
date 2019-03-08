@@ -29,7 +29,8 @@ public:
             TreeNode* leaf = selection(&root);
             // Phase 2 - Expansion
             if (leaf->is_explore()) leaf = expansion(leaf);
-            else                    leaf->set_explore();
+            // else                    leaf->set_explore();
+            leaf->set_explore();
             // Phase 3 - Simulation
             int value = simulation(leaf);
             // Phase 4 - Backpropagation
@@ -43,24 +44,25 @@ private:
         // std::cout << "selection\n";
         TreeNode* node = root;
         TreeNode* best_node = nullptr;
-        int root_color = root->get_player();       
+        int root_color = root->get_player();
         float layer = 1.0f;  // 1 mine -1 theirs
         while (node->get_all_child().size() != 0) {
             // std::cout << "--------find child---------\n";
             float best_value = -1e9;
             float t = float(node->get_visit_count()) + 1;
             std::vector<TreeNode> &child = node->get_all_child();
+            int color = node->get_player();
 
             // find the child with maximum UCB value plus n-tuple weight
             for (size_t i = 0; i < child.size(); i++) {
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
-                float h = tuple->get_board_value(child[i].get_board(), root_color);
+                float h = tuple->get_board_value(child[i].get_board(), color);
 
                 // check whether MCTS with tuple value
                 if (!with_tuple)    h = 0.0f;
 
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + h / n;       
+                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + h / n;
                 if (best_value < value) {
                     best_value = value;
                     best_node = &child[i];
@@ -163,7 +165,7 @@ private:
     }
 
     void backpropagation(TreeNode *node, int value) {
-        // std::cout << "backpropagation\n";       
+        // std::cout << "backpropagation\n";
         while (node != NULL) {
             node->add_visit_count();
             if (value == 1) node->add_win_score();
