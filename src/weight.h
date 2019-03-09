@@ -5,14 +5,15 @@
 
 class Weight {
 public:
+    typedef std::pair<float, unsigned> TupleData; // first: value, second: visit count
     Weight() {}
     Weight(size_t len) : value(len) {}
     Weight(Weight&& f) : value(std::move(f.value)) {}
     Weight(const Weight& f) = default;
 
     Weight& operator =(const Weight& f) = default;
-    float& operator[] (size_t i) { return value[i]; }
-    const float& operator[] (size_t i) const { return value[i]; }
+    TupleData& operator[] (size_t i) { return value[i]; }
+    const TupleData& operator[] (size_t i) const { return value[i]; }
     size_t size() const { return value.size(); }
 
 public:
@@ -20,7 +21,7 @@ public:
         auto& value = w.value;
         uint64_t size = value.size();
         out.write(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
-        out.write(reinterpret_cast<const char*>(value.data()), sizeof(float) * size);
+        out.write(reinterpret_cast<const char*>(value.data()), sizeof(TupleData) * size);
         return out;
     }
     friend std::istream& operator >>(std::istream& in, Weight& w) {
@@ -28,10 +29,10 @@ public:
         uint64_t size = 0;
         in.read(reinterpret_cast<char*>(&size), sizeof(uint64_t));
         value.resize(size);
-        in.read(reinterpret_cast<char*>(value.data()), sizeof(float) * size);
+        in.read(reinterpret_cast<char*>(value.data()), sizeof(TupleData) * size);
         return in; 
     }
 
 protected:
-    std::vector<float> value;
+    std::vector<TupleData> value;
 };
