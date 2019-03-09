@@ -19,7 +19,7 @@ public:
 
 class RandomAgent : public Agent {
 public:
-    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(7); }
+    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(17); }
     virtual ~RandomAgent() {}
 
 protected:
@@ -42,16 +42,7 @@ public:
     }
 
     virtual void close_episode(const std::string& flag = "") {
-        // Board last = record.back();
-        // int black_bitcount = Bitcount(last.get_board(0));
-        // int white_bitcount = Bitcount(last.get_board(1));
-
         float result = (flag == "Black") ? 1.0f : -1.0f;
-        // std::cout << black_bitcount << " " << white_bitcount << std::endl;
-        // if      (black_bitcount < white_bitcount)   result = -1.0f;
-        // else if (black_bitcount == white_bitcount)  result = 0.0f;
-        // else                                        result = 1.0f;
-
         for (int i = record.size() - 1; i >= 0; i--) {
             tuple->train_weight(record[i], result);
         }
@@ -105,7 +96,7 @@ public:
         else {
             Board tmp = Board(before);
             int size1 = eats.size(), size2 = moves.size();
-            if (dis(engine) * (size1 + size2) < size1) {
+            if (dis(engine) * (size1 + size2) < size1 * 5) {  // eat seems to be TOO important
                 if (eats.size() > 0) {
                     tmp.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
                     record.emplace_back(tmp);

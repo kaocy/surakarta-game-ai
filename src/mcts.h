@@ -9,7 +9,7 @@
 
 class MCTS {
 public:
-    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(180); }
+    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(10); }
 
     void playing(Board &board, int player) {
         // play with MCTS
@@ -44,10 +44,7 @@ private:
         // std::cout << "selection\n";
         TreeNode* node = root;
         TreeNode* best_node = nullptr;
-        int root_color = root->get_player();
-        float layer = 1.0f;  // 1 mine -1 theirs
         while (node->get_all_child().size() != 0) {
-            // std::cout << "--------find child---------\n";
             float best_value = -1e9;
             float t = float(node->get_visit_count()) + 1;
             std::vector<TreeNode> &child = node->get_all_child();
@@ -62,14 +59,14 @@ private:
                 // check whether MCTS with tuple value
                 if (!with_tuple)    h = 0.0f;
 
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + h / n;
+                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 10 * h / n;
+                // if(with_tuple) std::cout << w/n << " " << 0.5 * sqrt(2 * log2(t) / n) << " " << h / n <<std::endl;
                 if (best_value < value) {
                     best_value = value;
                     best_node = &child[i];
                 }
             }
             node = best_node;
-            layer *= -1.0f;
         }
         return node;
     }

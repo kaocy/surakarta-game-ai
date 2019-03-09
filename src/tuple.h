@@ -89,17 +89,17 @@ private:
         uint32_t outer_index = 0, small_index = 0, large_index = 0;
 
         /**
-         * map board white bit [49, 42, 35, 28, 21, 14] to [49, 14, 42, 21, 35, 28] (0x222222)
-         * map board black bit [49, 42, 35, 28, 21, 14] to [49, 14, 42, 21, 35, 28] (0x111111)
-         * map board white bit [54, 45, 36, 27, 18,  9] to [54,  9, 45, 18, 36, 27] (0x888888)
-         * map board black bit [54, 45, 36, 27, 18,  9] to [54,  9, 45, 18, 36, 27] (0x444444)
+         * map board black bit [49, 42, 35, 28, 21, 14] to (0x111111) with the order [49, 14, 42, 21, 35, 28] 
+         * map board white bit [49, 42, 35, 28, 21, 14] to (0x222222) with the order [49, 14, 42, 21, 35, 28] 
+         * map board white bit [54, 45, 36, 27, 18,  9] to (0x888888) with the order [54,  9, 45, 18, 36, 27] 
+         * map board black bit [54, 45, 36, 27, 18,  9] to (0x444444) with the order [54,  9, 45, 18, 36, 27] 
          */
         uint64_t head = ((white & 0x0002040810204000ULL) * 0x020004000F000ULL >> 42 & 0x222222ULL) |
                         ((black & 0x0002040810204000ULL) * 0x020004000F000ULL >> 43 & 0x111111ULL) |
                         ((white & 0x0040201008040200ULL) * 0x4000200010E00ULL >> 40 & 0x888888ULL) |
                         ((black & 0x0040201008040200ULL) * 0x4000200010E00ULL >> 41 & 0x444444ULL);
 
-        uint64_t outer_head = head >> 16 & 0xFF;
+        uint64_t outer_head = (head >> 16) & 0xFF;
         Board outer_board = b;
         convert81(outer_head, outer_board);
         Board::data outer_white = outer_board.get_board(1);
@@ -148,7 +148,7 @@ public:
         float outer_v = outer[outer_head & 0xF][outer_index] * ((outer_head & 16) ? -1.0f : 1.0f);
         float small_v = small[small_head & 0xF][small_index] * ((small_head & 16) ? -1.0f : 1.0f);
         float large_v = large[large_head & 0xF][large_index] * ((large_head & 16) ? -1.0f : 1.0f);
-        return (outer_v + 3 * small_v + 3 * large_v) / 7.0f * (player? -1.0f: 1.0f) ;
+        return (outer_v + 3 * small_v + 3 * large_v) / 7.0f * (player ? -1.0f: 1.0f) ;
     }
 
     void set_board_value(const Board &b, float value) {

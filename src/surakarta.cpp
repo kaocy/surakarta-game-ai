@@ -133,9 +133,9 @@ int main(int argc, const char* argv[]) {
 
         // after training some episodes, test playing result
         if (stat.episode_count() % total == 0) {
-            fight(0, 3, &tuple);
+            fight(1, 0, &tuple);
             fight(0, 1, &tuple);
-            fight(2, 3, &tuple);
+            // fight(2, 3, &tuple);
         }
     }
 
