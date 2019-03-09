@@ -2,3 +2,5 @@
 surakarta
 surakarta.dSYM
 /src/.vscode
+*.bin
+*.txt
