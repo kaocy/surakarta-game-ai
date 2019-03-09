@@ -76,7 +76,7 @@ public:
                 float v = tuple->get_board_value(tmp, color);
                 unsigned oc, sc, lc;
                 tuple->get_board_visit_count(before, oc, sc, lc);
-                oc += 5; sc += 5; lc += 5;
+                oc += 2; sc += 2; lc += 2;
                 float value = v + sqrt(log2(poc) / oc / 50) + sqrt(log2(psc) / sc / 50) + sqrt(log2(plc) / lc / 50);
                 // std::cout << v <<" "<< sqrt(2 * log2(poc) / oc)<<" " << value <<std::endl;
                 if (value > best_value) {
@@ -93,8 +93,8 @@ public:
                 float v = tuple->get_board_value(tmp, color);
                 unsigned oc, sc, lc;
                 tuple->get_board_visit_count(before, oc, sc, lc);
-                oc += 5; sc += 5; lc += 5;
-                float value = v + sqrt(2 * log2(poc) / oc) + sqrt(2 * log2(psc) / sc) + sqrt(2 * log2(plc) / lc);
+                oc += 2; sc += 2; lc += 2;
+                float value = v + sqrt(log2(poc) / oc / 50) + sqrt(log2(psc) / sc / 50) + sqrt(log2(plc) / lc / 50);
                 
                 if (value > best_value) {
                     best_value = value;
