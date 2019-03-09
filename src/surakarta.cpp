@@ -26,7 +26,7 @@ void fight(int player1, int player2, Tuple *tuple) {
     
     int black_win = 0, white_win = 0;
 
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 500; i++) {
         // std::cout << i << std::endl;
         Board board;
         int color = 0, count = 0, current;
@@ -133,9 +133,9 @@ int main(int argc, const char* argv[]) {
 
         // after training some episodes, test playing result
         if (stat.episode_count() % total == 0) {
-            fight(1, 0, &tuple);
-            fight(0, 1, &tuple);
-            // fight(2, 3, &tuple);
+            // fight(1, 0, &tuple);
+            // fight(0, 1, &tuple);
+            fight(2, 3, &tuple);
         }
     }
 

@@ -67,6 +67,7 @@ public:
 
             unsigned poc, psc, plc;
             tuple->get_board_visit_count(before, poc, psc, plc);
+            poc += 1; psc+=1; plc+=1;
 
             for (unsigned code : eats) {
                 Board tmp = Board(before);
@@ -76,8 +77,8 @@ public:
                 unsigned oc, sc, lc;
                 tuple->get_board_visit_count(before, oc, sc, lc);
                 oc += 5; sc += 5; lc += 5;
-                float value = v + sqrt(2 * log2(poc) / oc) + sqrt(2 * log2(psc) / sc) + sqrt(2 * log2(plc) / lc);
-                
+                float value = v + sqrt(log2(poc) / oc / 50) + sqrt(log2(psc) / sc / 50) + sqrt(log2(plc) / lc / 50);
+                // std::cout << v <<" "<< sqrt(2 * log2(poc) / oc)<<" " << value <<std::endl;
                 if (value > best_value) {
                     best_value = value;
                     best_code = code;
