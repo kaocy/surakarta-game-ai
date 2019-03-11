@@ -79,7 +79,6 @@ public:
     void train_weight(const Board &b, float result) {
         // result: 1 black win -1 white win
         set_board_value(b, result);
-        add_board_visit_count(b);
     }
 
 private:
@@ -146,9 +145,9 @@ public:
         unsigned small_head = s >> 27, small_index = s & ((1 << 27) - 1);
         unsigned large_head = l >> 27, large_index = l & ((1 << 27) - 1);
 
-        float outer_v = outer[outer_head & 0xF][outer_index].first * ((outer_head & 16) ? -1.0f : 1.0f);
-        float small_v = small[small_head & 0xF][small_index].first * ((small_head & 16) ? -1.0f : 1.0f);
-        float large_v = large[large_head & 0xF][large_index].first * ((large_head & 16) ? -1.0f : 1.0f);
+        float outer_v = outer[outer_head & 0xF][outer_index] * ((outer_head & 16) ? -1.0f : 1.0f);
+        float small_v = small[small_head & 0xF][small_index] * ((small_head & 16) ? -1.0f : 1.0f);
+        float large_v = large[large_head & 0xF][large_index] * ((large_head & 16) ? -1.0f : 1.0f);
         return (outer_v + 3 * small_v + 3 * large_v) / 7.0f * (player ? -1.0f : 1.0f);
     }
 
@@ -162,33 +161,9 @@ public:
         float samll_sign = (s >> 31) ? -1.0f : 1.0f;
         float large_sign = (l >> 31) ? -1.0f : 1.0f;
 
-        outer[outer_head][outer_index].first += alpha * (value - outer[outer_head][outer_index].first * outer_sign ) * outer_sign;
-        small[small_head][small_index].first += alpha * (value - small[small_head][small_index].first * samll_sign ) * samll_sign;
-        large[large_head][large_index].first += alpha * (value - large[large_head][large_index].first * large_sign ) * large_sign;
-    }
-
-    void get_board_visit_count(const Board &b, unsigned &oc, unsigned &sc, unsigned &lc) {  // 0 black 1 white
-        uint32_t o, s, l;
-        board_to_tuple(b, o, s, l);
-        unsigned outer_head = o >> 27, outer_index = o & ((1 << 27) - 1);
-        unsigned small_head = s >> 27, small_index = s & ((1 << 27) - 1);
-        unsigned large_head = l >> 27, large_index = l & ((1 << 27) - 1);
-
-        oc = outer[outer_head & 0xF][outer_index].second;
-        sc = small[small_head & 0xF][small_index].second;
-        lc = large[large_head & 0xF][large_index].second;
-    }
-
-    void add_board_visit_count(const Board &b) {
-        uint32_t o, s, l;
-        board_to_tuple(b, o, s, l);
-        unsigned outer_head = (o >> 27) & 0xF, outer_index = o & ((1 << 27) - 1);
-        unsigned small_head = (s >> 27) & 0xF, small_index = s & ((1 << 27) - 1);
-        unsigned large_head = (l >> 27) & 0xF, large_index = l & ((1 << 27) - 1);
-
-        outer[outer_head][outer_index].second += 1;
-        small[small_head][small_index].second += 1;
-        large[large_head][large_index].second += 1;
+        outer[outer_head][outer_index] += alpha * (value - outer[outer_head][outer_index] * outer_sign ) * outer_sign;
+        small[small_head][small_index] += alpha * (value - small[small_head][small_index] * samll_sign ) * samll_sign;
+        large[large_head][large_index] += alpha * (value - large[large_head][large_index] * large_sign ) * large_sign;
     }
 
 private:

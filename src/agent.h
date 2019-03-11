@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <vector>
 #include <random>
-#include <cmath>
 #include "board.h"
 #include "action.h"
 #include "utilities.h"
@@ -65,20 +64,11 @@ public:
             Board best_state;
             int best_action_type;
 
-            unsigned poc, psc, plc;
-            tuple->get_board_visit_count(before, poc, psc, plc);
-            poc += 1; psc+=1; plc+=1;
-
             for (unsigned code : eats) {
                 Board tmp = Board(before);
                 tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
 
-                float v = tuple->get_board_value(tmp, color);
-                unsigned oc, sc, lc;
-                tuple->get_board_visit_count(before, oc, sc, lc);
-                oc += 2; sc += 2; lc += 2;
-                float value = v + sqrt(log2(poc) / oc / 50) + sqrt(log2(psc) / sc / 50) + sqrt(log2(plc) / lc / 50);
-                // std::cout << v <<" "<< sqrt(2 * log2(poc) / oc)<<" " << value <<std::endl;
+                float value = tuple->get_board_value(tmp, color);
                 if (value > best_value) {
                     best_value = value;
                     best_code = code;
@@ -90,12 +80,7 @@ public:
                 Board tmp = Board(before);
                 tmp.move(code & 0b111111, (code >> 6) & 0b111111);
 
-                float v = tuple->get_board_value(tmp, color);
-                unsigned oc, sc, lc;
-                tuple->get_board_visit_count(before, oc, sc, lc);
-                oc += 2; sc += 2; lc += 2;
-                float value = v + sqrt(log2(poc) / oc / 50) + sqrt(log2(psc) / sc / 50) + sqrt(log2(plc) / lc / 50);
-                
+                float value = tuple->get_board_value(tmp, color);                
                 if (value > best_value) {
                     best_value = value;
                     best_code = code;
