@@ -11,7 +11,7 @@
 
 std::string Method[] = {"MCTS_with_tuple", "MCTS", "tuple", "eat_first"};
 
-void fight(int player1, int player2, Tuple *tuple) {
+void fight(int player1, int player2, Tuple *tuple, int game_count) {
     /** 
      * player 
      * 0 : MCTS with tuple
@@ -26,7 +26,7 @@ void fight(int player1, int player2, Tuple *tuple) {
     
     int black_win = 0, white_win = 0;
 
-    for (int i = 0; i < 500; i++) {
+    for (int i = 0; i < game_count; i++) {
         // std::cout << i << std::endl;
         Board board;
         int color = 0, count = 0, current;
@@ -62,7 +62,7 @@ void fight(int player1, int player2, Tuple *tuple) {
         }
     }
 
-    std::cout << "Playing 50 episodes: \n";
+    std::cout << "Playing " << game_count << " episodes: \n";
     std::cout << std::fixed << std::setprecision(1);
     std::cout << "Black: " << black_win * 100.0 / (black_win + white_win) << " %" << std::endl;
     std::cout << "White: " << white_win * 100.0 / (black_win + white_win) << " %\n" << std::endl;
@@ -73,7 +73,7 @@ int main(int argc, const char* argv[]) {
     std::copy(argv, argv + argc, std::ostream_iterator<const char*>(std::cout, " "));
     std::cout << std::endl << std::endl;
 
-    size_t total = 1000, block = 0, limit = 0;
+    size_t total = 1000, block = 0, limit = 0, game_count = 50;
     std::string play1_args, play2_args, tuple_args;
     std::string load, save;
     bool summary = false;
@@ -85,6 +85,8 @@ int main(int argc, const char* argv[]) {
             block = std::stoull(para.substr(para.find("=") + 1));
         } else if (para.find("--limit=") == 0) {
             limit = std::stoull(para.substr(para.find("=") + 1));
+        } else if (para.find("--game=") == 0) {
+            game_count = std::stoull(para.substr(para.find("=") + 1));
         } else if (para.find("--play1=") == 0) {
             play1_args = para.substr(para.find("=") + 1);
         } else if (para.find("--play2=") == 0) {
@@ -133,9 +135,9 @@ int main(int argc, const char* argv[]) {
 
         // after training some episodes, test playing result
         if (stat.episode_count() % total == 0) {
-            // fight(1, 0, &tuple);
-            // fight(0, 1, &tuple);
-            fight(2, 3, &tuple);
+            // fight(1, 0, &tuple, game_count);
+            // fight(0, 1, &tuple, game_count);
+            fight(1, 3, &tuple, game_count);
         }
     }
 

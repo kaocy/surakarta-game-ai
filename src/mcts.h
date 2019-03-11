@@ -23,8 +23,8 @@ public:
         root.set_explore();
         root.set_player(player);
 
-        // select best child after 1000 MCTS search
-        for (int i = 0; i < 1000; i++) {
+        // select best child after 5000 MCTS search
+        for (int i = 0; i < 5000; i++) {
             // Phase 1 - Selection 
             TreeNode* leaf = selection(&root);
             // Phase 2 - Expansion
@@ -130,23 +130,23 @@ private:
             std::shuffle(eats.begin(), eats.end(), engine);
             std::shuffle(moves.begin(), moves.end(), engine);
 
-            if (eats.size() > 0) {
-                board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-            }
-            else if (moves.size() > 0) {
-                board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-            }
-            // int size1 = eats.size(), size2 = moves.size();
-            // if (dis(engine) * (size1 + size2) < size1) {
-            //     if (eats.size() > 0) {
-            //         board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-            //     }
+            // if (eats.size() > 0) {
+            //     board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
             // }
-            // else {
-            //     if (moves.size() > 0) {
-            //         board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-            //     }
+            // else if (moves.size() > 0) {
+            //     board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
             // }
+            int size1 = eats.size(), size2 = moves.size();
+            if (dis(engine) * (size1 + size2) < size1) {
+                if (eats.size() > 0) {
+                    board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                }
+            }
+            else {
+                if (moves.size() > 0) {
+                    board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                }
+            }
 
             player ^= 1; // toggle player
         }
