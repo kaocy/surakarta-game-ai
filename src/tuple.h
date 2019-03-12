@@ -97,17 +97,13 @@ public:
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
             float value = minimax_search(tmp, player ^ 1, level - 1);
-            if (value > best_value) {
-                best_value = value;
-            }
+            best_value = std::max(best_value, value);
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
             float value = minimax_search(tmp, player ^ 1, level - 1);
-            if (value > best_value) {
-                best_value = value;
-            }
+            best_value = std::max(best_value, value);
         }
         return best_value;
     }
