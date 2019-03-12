@@ -63,30 +63,32 @@ public:
             unsigned best_code = 0;
             Board best_state;
             int best_action_type;
-
+            float alp = -1e9, bet = 1e9;
             for (unsigned code : eats) {
                 Board tmp = Board(before);
                 tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
 
-                float value = tuple->minimax_search(tmp, color, 1);
+                float value = tuple->minimax_search(tmp, color, 1, -bet, -alp);
                 if (value > best_value) {
                     best_value = value;
                     best_code = code;
                     best_state = tmp;
                     best_action_type = 0;
                 }
+                if (best_value > alp) alp = best_value;
             }
             for (unsigned code : moves) {
                 Board tmp = Board(before);
                 tmp.move(code & 0b111111, (code >> 6) & 0b111111);
 
-                float value = tuple->minimax_search(tmp, color, 1);
+                float value = tuple->minimax_search(tmp, color, 1, -bet, -alp);
                 if (value > best_value) {
                     best_value = value;
                     best_code = code;
                     best_state = tmp;
                     best_action_type = 1;
                 }
+                if (best_value > alp) alp = best_value;
             }
             if (best_code != 0) {
                 record.emplace_back(best_state);
@@ -139,26 +141,28 @@ public:
         float best_value = -1e9;
         unsigned best_code = 0;
         int best_action_type;
-
+        float alp = -1e9, bet = 1e9;
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-            float value = tuple->minimax_search(tmp, player, 1);
+            float value = tuple->minimax_search(tmp, player, 1, -bet, -alp);
             if (value > best_value) {
                 best_value = value;
                 best_code = code;
                 best_action_type = 0;
             }
+            if (best_value > alp) alp = best_value;
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-            float value = tuple->minimax_search(tmp, player, 1);
+            float value = tuple->minimax_search(tmp, player, 1, -bet, -alp);
             if (value > best_value) {
                 best_value = value;
                 best_code = code;
                 best_action_type = 1;
             }
+            if (best_value > alp) alp = best_value;
         }
         if (best_code != 0) {
             if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);

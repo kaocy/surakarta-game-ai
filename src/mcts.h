@@ -59,7 +59,7 @@ private:
                 // check whether MCTS with tuple value
                 if (!with_tuple)    h = 0.0f;
 
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 10 * h / n;
+                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 0.1f * h ;
                 // if(with_tuple) std::cout << w/n << " " << 0.5 * sqrt(2 * log2(t) / n) << " " << h / n <<std::endl;
                 if (best_value < value) {
                     best_value = value;

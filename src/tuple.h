@@ -9,7 +9,7 @@
 
 class Tuple {
 public:
-    Tuple(const std::string& args = "") : alpha(0.01f) {       
+    Tuple(const std::string& args = "") : alpha(0.001f) {       
         std::stringstream ss(args);
         for (std::string pair; ss >> pair; ) {
             std::string key = pair.substr(0, pair.find('='));
@@ -82,7 +82,7 @@ public:
     }
 
 public:
-    float minimax_search(const Board &board, int player, int level) {
+    float minimax_search(const Board &board, int player, int level, float alp, float bet) {
         if (level <= 0) {
             return get_board_value(board, player);
         }
@@ -96,16 +96,20 @@ public:
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-            float value = minimax_search(tmp, player ^ 1, level - 1);
+            float value = minimax_search(tmp, player ^ 1, level - 1, -bet, -alp);
             best_value = std::max(best_value, value);
+            if (best_value > alp) alp = best_value;
+            if (best_value >= bet) return -alp;
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-            float value = minimax_search(tmp, player ^ 1, level - 1);
+            float value = minimax_search(tmp, player ^ 1, level - 1, -bet, -alp);
             best_value = std::max(best_value, value);
+            if (best_value > alp) alp = best_value;
+            if (best_value >= bet) return -alp;
         }
-        return best_value;
+        return -alp;
     }
 
     float get_board_value(const Board &b, int player) {  // 0 black 1 white
