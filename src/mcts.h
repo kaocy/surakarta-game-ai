@@ -10,7 +10,7 @@
 class MCTS {
 public:
     MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(10); }
-
+    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed) : tuple(tuple), with_tuple(with_tuple) { engine.seed(sed); }
     void playing(Board &board, int player) {
         // play with MCTS
         board = find_next_move(board, player);

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <iterator>
 #include <fstream>
+#include <thread>
+#include <mutex>
 #include "board.h"
 #include "action.h"
 #include "agent.h"
@@ -10,22 +12,15 @@
 #include "mcts.h"
 
 std::string Method[] = {"MCTS_with_tuple", "MCTS", "tuple", "eat_first"};
+std::mutex mtx;
+int fight_black_win, fight_white_win;
 
-void fight(int player1, int player2, Tuple *tuple, int game_count) {
-    /** 
-     * player 
-     * 0 : MCTS with tuple
-     * 1 : MCTS
-     * 2 : tuple
-     * 3 : eat first
-     */
-    std::cout << Method[player1] << " VS " << Method[player2] << std::endl;
-    MCTS mcts_tuple(tuple, true), mcts(tuple, false);
+void fight_thread(int player1, int player2, Tuple *tuple, int game_count, int seeds) {
+    MCTS mcts_tuple(tuple, true, seeds), mcts(tuple, false, seeds);
     TuplePlayer tuple_player(tuple);
     RandomPlayer random_player;
     
     int black_win = 0, white_win = 0;
-
     for (int i = 0; i < game_count; i++) {
         // std::cout << i << std::endl;
         Board board;
@@ -61,11 +56,32 @@ void fight(int player1, int player2, Tuple *tuple, int game_count) {
             if (black_bitcount < white_bitcount)    white_win++;
         }
     }
+    mtx.lock();
+    fight_black_win += black_win;
+    fight_white_win += white_win;
+    mtx.unlock();
+    // std::cout << black_win << " " << white_win << std::endl;
+    return;
+}
 
+void fight(int player1, int player2, Tuple *tuple, int game_count) {
+    /** 
+     * player 
+     * 0 : MCTS with tuple
+     * 1 : MCTS
+     * 2 : tuple
+     * 3 : eat first
+     */
+    fight_black_win = 0, fight_white_win = 0;
+    std::cout << Method[player1] << " VS " << Method[player2] << std::endl;
+    std::vector<std::thread> threads;
+    for(int i = 0; i < 5; i++) 
+        threads.push_back(std::thread(fight_thread, player1, player2, tuple, game_count / 5, i));
+    for (auto& th : threads) th.join();
     std::cout << "Playing " << game_count << " episodes: \n";
     std::cout << std::fixed << std::setprecision(1);
-    std::cout << "Black: " << black_win * 100.0 / (black_win + white_win) << " %" << std::endl;
-    std::cout << "White: " << white_win * 100.0 / (black_win + white_win) << " %\n" << std::endl;
+    std::cout << "Black: " << fight_black_win * 100.0 / (fight_black_win + fight_white_win) << " %" << std::endl;
+    std::cout << "White: " << fight_white_win * 100.0 / (fight_black_win + fight_white_win) << " %\n" << std::endl;
 }
 
 int main(int argc, const char* argv[]) {
@@ -135,10 +151,10 @@ int main(int argc, const char* argv[]) {
 
         // after training some episodes, test playing result
         if (stat.episode_count() % total == 0) {
-            // fight(1, 0, &tuple, game_count);
-            // fight(0, 1, &tuple, game_count);
-            fight(2, 3, &tuple, game_count);
-            fight(3, 2, &tuple, game_count);
+            fight(1, 0, &tuple, game_count);
+            fight(0, 1, &tuple, game_count);
+            // fight(2, 3, &tuple, game_count);
+            // fight(3, 2, &tuple, game_count);
         }
     }
 
