@@ -36,6 +36,7 @@ public:
             // Phase 4 - Backpropagation
             backpropagation(leaf, value);
         }
+        if (root.get_all_child().size() == 0) return board;
         return root.get_best_child_node().get_board();
     }
 
@@ -59,7 +60,7 @@ private:
                 // check whether MCTS with tuple value
                 if (!with_tuple)    h = 0.0f;
 
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 0.1f * h ;
+                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 0.3f * h ;
                 // if(with_tuple) std::cout << w/n << " " << 0.5 * sqrt(2 * log2(t) / n) << " " << h / n <<std::endl;
                 if (best_value < value) {
                     best_value = value;
@@ -130,23 +131,23 @@ private:
             std::shuffle(eats.begin(), eats.end(), engine);
             std::shuffle(moves.begin(), moves.end(), engine);
 
-            // if (eats.size() > 0) {
-            //     board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-            // }
-            // else if (moves.size() > 0) {
-            //     board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-            // }
-            int size1 = eats.size(), size2 = moves.size();
-            if (dis(engine) * (size1 + size2) < size1) {
-                if (eats.size() > 0) {
-                    board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-                }
+            if (eats.size() > 0) {
+                board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
             }
-            else {
-                if (moves.size() > 0) {
-                    board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-                }
+            else if (moves.size() > 0) {
+                board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
             }
+            // int size1 = eats.size(), size2 = moves.size();
+            // if (dis(engine) * (size1 + size2) < size1) {
+            //     if (eats.size() > 0) {
+            //         board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+            //     }
+            // }
+            // else {
+            //     if (moves.size() > 0) {
+            //         board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+            //     }
+            // }
 
             player ^= 1; // toggle player
         }
