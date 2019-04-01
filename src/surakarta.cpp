@@ -15,9 +15,8 @@ const std::string PLAYER[] = {"MCTS_with_tuple", "MCTS", "tuple", "eat_first"};
 const std::string SIMULATION[] = {"(random)", "(eat-first)", "(tuple)"};
 std::mutex mtx;
 int fight_black_win, fight_white_win;
-int sim1 = 0, sim2 = 0;
 
-void fight_thread(int player1, int player2, Tuple *tuple, int game_count, int seeds) {
+void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, int seeds) {
     MCTS mcts_tuple(tuple, true, seeds), mcts(tuple, false, seeds);
     TuplePlayer tuple_player(tuple);
     RandomPlayer random_player;
@@ -66,13 +65,18 @@ void fight_thread(int player1, int player2, Tuple *tuple, int game_count, int se
     // std::cout << black_win << " " << white_win << std::endl;
 }
 
-void fight(int player1, int player2, Tuple *tuple, int game_count) {
+void fight(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count) {
     /** 
      * player 
      * 0 : MCTS with tuple
      * 1 : MCTS
      * 2 : tuple
      * 3 : eat first
+     *
+     * simulation
+     * 0 : random
+     * 1 : eat first
+     * 2 : tuple
      */
     std::cout << PLAYER[player1];
     if (player1 <= 1)   std::cout << SIMULATION[sim1];
@@ -83,7 +87,7 @@ void fight(int player1, int player2, Tuple *tuple, int game_count) {
     fight_black_win = 0, fight_white_win = 0;
     std::vector<std::thread> threads;
     for(int i = 0; i < 5; i++) {
-        threads.push_back(std::thread(fight_thread, player1, player2, tuple, game_count / 5, i));
+        threads.push_back(std::thread(fight_thread, player1, player2, sim1, sim2, tuple, game_count / 5, i));
     }
     for (auto& th : threads) {
         th.join();
@@ -101,8 +105,8 @@ int main(int argc, const char* argv[]) {
     std::cout << std::endl << std::endl;
 
     size_t total = 1000, block = 0, limit = 0, game_count = 500;
+    int sim1 = 0, sim2 = 0;
     std::string play1_args, play2_args, tuple_args;
-    std::string load, save;
     bool summary = false;
     for (int i = 1; i < argc; i++) {
         std::string para(argv[i]);
@@ -155,10 +159,8 @@ int main(int argc, const char* argv[]) {
 
         // after training some episodes, test playing result
         if (stat.episode_count() % total == 0) {
-            fight(0, 1, &tuple, game_count);
-            fight(1, 0, &tuple, game_count);
-            // fight(2, 3, &tuple, game_count);
-            // fight(3, 2, &tuple, game_count);
+            fight(0, 1, sim1, sim2, &tuple, game_count);
+            fight(1, 0, sim2, sim1, &tuple, game_count);
         }
     }
 
