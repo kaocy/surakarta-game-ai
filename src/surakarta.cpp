@@ -61,7 +61,6 @@ void fight_thread(int player1, int player2, Tuple *tuple, int game_count, int se
     fight_white_win += white_win;
     mtx.unlock();
     // std::cout << black_win << " " << white_win << std::endl;
-    return;
 }
 
 void fight(int player1, int player2, Tuple *tuple, int game_count) {
@@ -75,9 +74,13 @@ void fight(int player1, int player2, Tuple *tuple, int game_count) {
     fight_black_win = 0, fight_white_win = 0;
     std::cout << Method[player1] << " VS " << Method[player2] << std::endl;
     std::vector<std::thread> threads;
-    for(int i = 0; i < 5; i++) 
+    for(int i = 0; i < 5; i++) {
         threads.push_back(std::thread(fight_thread, player1, player2, tuple, game_count / 5, i));
-    for (auto& th : threads) th.join();
+    }
+    for (auto& th : threads) {
+        th.join();
+    }
+
     std::cout << "Playing " << game_count << " episodes: \n";
     std::cout << std::fixed << std::setprecision(1);
     std::cout << "Black: " << fight_black_win * 100.0 / (fight_black_win + fight_white_win) << " %" << std::endl;
@@ -109,10 +112,6 @@ int main(int argc, const char* argv[]) {
             play2_args = para.substr(para.find("=") + 1);
         } else if (para.find("--tuple=") == 0) {
             tuple_args = para.substr(para.find("=") + 1);
-        } else if (para.find("--load=") == 0) {
-            load = para.substr(para.find("=") + 1);
-        } else if (para.find("--save=") == 0) {
-            save = para.substr(para.find("=") + 1);
         } else if (para.find("--summary") == 0) {
             summary = true;
         }
@@ -121,13 +120,6 @@ int main(int argc, const char* argv[]) {
     Tuple tuple(tuple_args);
     Statistic stat(total, block, limit);
     TrainingPlayer play1(0, &tuple), play2(1, &tuple);
-
-    if (load.size()) {
-        std::ifstream in(load, std::ios::in);
-        in >> stat;
-        in.close();
-        summary |= stat.is_finished();
-    }
 
     while (!stat.is_finished()) {     
         play1.open_episode();
@@ -160,12 +152,6 @@ int main(int argc, const char* argv[]) {
 
     if (summary) {
         stat.summary();
-    }
-
-    if (save.size()) {
-        std::ofstream out(save, std::ios::out | std::ios::trunc);
-        out << stat;
-        out.close();
     }
 
     return 0;
