@@ -11,9 +11,11 @@
 #include "utilities.h"
 #include "mcts.h"
 
-std::string Method[] = {"MCTS_with_tuple", "MCTS", "tuple", "eat_first"};
+const std::string PLAYER[] = {"MCTS_with_tuple", "MCTS", "tuple", "eat_first"};
+const std::string SIMULATION[] = {"(random)", "(eat-first)", "(tuple)"};
 std::mutex mtx;
 int fight_black_win, fight_white_win;
+int sim1 = 0, sim2 = 0;
 
 void fight_thread(int player1, int player2, Tuple *tuple, int game_count, int seeds) {
     MCTS mcts_tuple(tuple, true, seeds), mcts(tuple, false, seeds);
@@ -24,16 +26,17 @@ void fight_thread(int player1, int player2, Tuple *tuple, int game_count, int se
     for (int i = 0; i < game_count; i++) {
         // std::cout << i << std::endl;
         Board board;
-        int color = 0, count = 0, current;
+        int color = 0, count = 0, current, sim;
 
         while (!board.game_over() && count++ < 200) {
             current = color ? player2 : player1;
+            sim = color ? sim2 : sim1;
             switch (current) {
                 case 0:
-                    mcts_tuple.playing(board, color);
+                    mcts_tuple.playing(board, color, sim);
                     break;
                 case 1:
-                    mcts.playing(board, color);
+                    mcts.playing(board, color, sim);
                     break;
                 case 2:
                     tuple_player.playing(board, color);
@@ -71,8 +74,13 @@ void fight(int player1, int player2, Tuple *tuple, int game_count) {
      * 2 : tuple
      * 3 : eat first
      */
+    std::cout << PLAYER[player1];
+    if (player1 <= 1)   std::cout << SIMULATION[sim1];
+    std::cout << " VS " << PLAYER[player2];
+    if (player2 <= 1)   std::cout << SIMULATION[sim2];
+    std::cout << std::endl;
+
     fight_black_win = 0, fight_white_win = 0;
-    std::cout << Method[player1] << " VS " << Method[player2] << std::endl;
     std::vector<std::thread> threads;
     for(int i = 0; i < 5; i++) {
         threads.push_back(std::thread(fight_thread, player1, player2, tuple, game_count / 5, i));
@@ -110,6 +118,10 @@ int main(int argc, const char* argv[]) {
             play1_args = para.substr(para.find("=") + 1);
         } else if (para.find("--play2=") == 0) {
             play2_args = para.substr(para.find("=") + 1);
+        } else if (para.find("--sim1=") == 0) {
+            sim1 = std::stoull(para.substr(para.find("=") + 1));
+        } else if (para.find("--sim2=") == 0) {
+            sim2 = std::stoull(para.substr(para.find("=") + 1));
         } else if (para.find("--tuple=") == 0) {
             tuple_args = para.substr(para.find("=") + 1);
         } else if (para.find("--summary") == 0) {
