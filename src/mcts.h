@@ -10,14 +10,14 @@
 class MCTS {
 public:
     MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(10); }
-
-    void playing(Board &board, int player) {
+    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed) : tuple(tuple), with_tuple(with_tuple) { engine.seed(sed); }
+    void playing(Board &board, int player, int sim) {
         // play with MCTS
-        board = find_next_move(board, player);
+        board = find_next_move(board, player, sim);
     }
 
     // return board after best action
-    Board find_next_move(Board board, int player) {
+    Board find_next_move(Board board, int player, int sim) {
         Tree tree(board);
         TreeNode root = tree.get_root();
         root.set_explore();
@@ -29,13 +29,13 @@ public:
             TreeNode* leaf = selection(&root);
             // Phase 2 - Expansion
             if (leaf->is_explore()) leaf = expansion(leaf);
-            // else                    leaf->set_explore();
             leaf->set_explore();
             // Phase 3 - Simulation
-            int value = simulation(leaf);
+            int value = simulation(leaf, sim);
             // Phase 4 - Backpropagation
             backpropagation(leaf, value);
         }
+        if (root.get_all_child().size() == 0) return board;
         return root.get_best_child_node().get_board();
     }
 
@@ -58,9 +58,8 @@ private:
 
                 // check whether MCTS with tuple value
                 if (!with_tuple)    h = 0.0f;
+                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 0.6f * h;
 
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 0.1f * h ;
-                // if(with_tuple) std::cout << w/n << " " << 0.5 * sqrt(2 * log2(t) / n) << " " << h / n <<std::endl;
                 if (best_value < value) {
                     best_value = value;
                     best_node = &child[i];
@@ -103,7 +102,7 @@ private:
         return &(leaf->get_child(dis(engine)));
     }
 
-    int simulation(TreeNode *leaf) {
+    int simulation(TreeNode *leaf, int sim) {
         // std::cout << "simulation\n";
         TreeNode tmp(*leaf);
         Board& board = tmp.get_board();
@@ -121,7 +120,7 @@ private:
 
         std::uniform_real_distribution<> dis(0, 1);
         std::vector<unsigned> eats, moves;
-        // random playout for at most 100 steps
+        // playout for at most 100 steps
         for (int i = 0; i < 100 && !board.game_over(); i++) {
             eats.clear(); moves.clear();
             board.get_possible_eat(eats, player);
@@ -130,21 +129,57 @@ private:
             std::shuffle(eats.begin(), eats.end(), engine);
             std::shuffle(moves.begin(), moves.end(), engine);
 
-            // if (eats.size() > 0) {
-            //     board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-            // }
-            // else if (moves.size() > 0) {
-            //     board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-            // }
-            int size1 = eats.size(), size2 = moves.size();
-            if (dis(engine) * (size1 + size2) < size1) {
+            // random
+            if (sim == 0) {
+                int size1 = eats.size(), size2 = moves.size();
+                if (dis(engine) * (size1 + size2) < size1) {
+                    if (eats.size() > 0) {
+                        board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                    }
+                }
+                else {
+                    if (moves.size() > 0) {
+                        board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                    }
+                }
+            }
+            // eat first
+            else if (sim == 1) {
                 if (eats.size() > 0) {
                     board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
                 }
-            }
-            else {
-                if (moves.size() > 0) {
+                else if (moves.size() > 0) {
                     board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                }
+            }
+            // tuple
+            else if (sim == 2) {
+                float best_value = -1e9;
+                unsigned best_code = 0;
+                int best_action_type;
+                for (unsigned code : eats) {
+                    Board tmp = Board(board);
+                    tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
+                    float value = tuple->get_board_value(tmp, player);
+                    if (value > best_value) {
+                        best_value = value;
+                        best_code = code;
+                        best_action_type = 0;
+                    }
+                }
+                for (unsigned code : moves) {
+                    Board tmp = Board(board);
+                    tmp.move(code & 0b111111, (code >> 6) & 0b111111);
+                    float value = tuple->get_board_value(tmp, player);
+                    if (value > best_value) {
+                        best_value = value;
+                        best_code = code;
+                        best_action_type = 1;
+                    }
+                }
+                if (best_code != 0) {
+                    if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
                 }
             }
 

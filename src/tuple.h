@@ -83,31 +83,28 @@ public:
 
 public:
     float minimax_search(const Board &board, int player, int level, float alp, float bet) {
-        if (level <= 0) {
-            return get_board_value(board, player);
-        }
-
         std::vector<unsigned> eats, moves;
         eats.clear(); moves.clear();
         board.get_possible_eat(eats, player ^ 1);
         board.get_possible_move(moves, player ^ 1);
 
-        float best_value = -1e9;
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-            float value = minimax_search(tmp, player ^ 1, level - 1, -bet, -alp);
-            best_value = std::max(best_value, value);
-            if (best_value > alp) alp = best_value;
-            if (best_value >= bet) return -alp;
+            float value;
+            if (level <= 1) value = get_board_value(tmp, player ^ 1);
+            else value = minimax_search(tmp, player ^ 1, level - 1, -bet, -alp);
+            alp = std::max(alp, value);
+            if (alp >= bet) return -alp;
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-            float value = minimax_search(tmp, player ^ 1, level - 1, -bet, -alp);
-            best_value = std::max(best_value, value);
-            if (best_value > alp) alp = best_value;
-            if (best_value >= bet) return -alp;
+            float value;
+            if (level <= 1) value = get_board_value(tmp, player ^ 1);
+            else value = minimax_search(tmp, player ^ 1, level - 1, -bet, -alp);
+            alp = std::max(alp, value);
+            if (alp >= bet) return -alp;
         }
         return -alp;
     }

@@ -35,7 +35,7 @@ public:
 
     TreeNode get_best_child_node() {
         return *std::max_element(child.begin(), child.end(),
-                                 [](TreeNode A, TreeNode B) { return A.visit_count < B.visit_count; });
+                                 [](const TreeNode A, const TreeNode B) { return A.visit_count < B.visit_count; });
     }
 
 private:
