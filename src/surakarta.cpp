@@ -3,6 +3,8 @@
 #include <fstream>
 #include <thread>
 #include <mutex>
+#include <unordered_map>
+#include <functional>
 #include "board.h"
 #include "action.h"
 #include "agent.h"
@@ -17,10 +19,11 @@ std::mutex mtx;
 int fight_black_win, fight_white_win;
 
 void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, int seeds) {
-    MCTS mcts_tuple(tuple, true, seeds), mcts(tuple, false, seeds);
+    umap_uf tweight;
+    tweight.reserve(10000009);
+    MCTS mcts_tuple(tuple, true, 2 * seeds + 10, tweight), mcts(tuple, false, seeds);
     TuplePlayer tuple_player(tuple);
     RandomPlayer random_player;
-    
     int black_win = 0, white_win = 0;
     for (int i = 0; i < game_count; i++) {
         // std::cout << i << std::endl;
@@ -32,10 +35,10 @@ void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, in
             sim = color ? sim2 : sim1;
             switch (current) {
                 case 0:
-                    mcts_tuple.playing(board, color, sim);
+                    mcts_tuple.playing(board, color, sim, i);
                     break;
                 case 1:
-                    mcts.playing(board, color, sim);
+                    mcts.playing(board, color, sim, i);
                     break;
                 case 2:
                     tuple_player.playing(board, color);
@@ -63,6 +66,7 @@ void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, in
     fight_white_win += white_win;
     mtx.unlock();
     // std::cout << black_win << " " << white_win << std::endl;
+    std::cout << tweight.size()<<" ";
 }
 
 void fight(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count) {

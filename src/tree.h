@@ -18,6 +18,9 @@ public:
     Board& get_board() { return board; }
     const Board& get_board() const { return board; }
 
+    uint64_t get_board(int n) { return board.get_board(n & 1); }
+    const uint64_t get_board(int n) const { return board.get_board(n & 1); }
+
     int get_win_score() { return win_score; }
     void add_win_score() { win_score++; }
 

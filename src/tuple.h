@@ -82,7 +82,8 @@ public:
     }
 
 public:
-    float minimax_search(const Board &board, int player, int level, float alp, float bet) {
+    float minimax_search(const Board &board, const int player, const int level, float alp, float bet) {
+        if (board.game_over()) return -alp;
         std::vector<unsigned> eats, moves;
         eats.clear(); moves.clear();
         board.get_possible_eat(eats, player ^ 1);

@@ -2,18 +2,24 @@
 #include <cmath>
 #include <vector>
 #include <random>
+#include <unordered_map>
+#include <functional>
+#include <bitset>
 #include "tree.h"
 #include "board.h"
 #include "tuple.h"
 #include "utilities.h"
-
+typedef std::unordered_map<uint128_t, float> umap_uf;
 class MCTS {
 public:
-    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(10); }
-    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed) : tuple(tuple), with_tuple(with_tuple) { engine.seed(sed); }
-    void playing(Board &board, int player, int sim) {
+    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple), tweight (*(umap_uf*)0) { engine.seed(10); }
+    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed) : tuple(tuple), with_tuple(with_tuple), tweight (*(umap_uf*)0) { engine.seed(sed); }
+    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed, umap_uf &tweight) : tuple(tuple), with_tuple(with_tuple), tweight(tweight) { engine.seed(sed); }
+
+    void playing(Board &board, int player, int sim, const int gcount) {
         // play with MCTS
         board = find_next_move(board, player, sim);
+        this->gc = gcount + 1;
     }
 
     // return board after best action
@@ -49,16 +55,31 @@ private:
             float t = float(node->get_visit_count()) + 1;
             std::vector<TreeNode> &child = node->get_all_child();
             int color = node->get_player();
-
+            const bool to_record = ((Bitcount(node->get_board(0)) > 8) && (Bitcount(node->get_board(1)) > 8));
             // find the child with maximum UCB value plus n-tuple weight
             for (size_t i = 0; i < child.size(); i++) {
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
-                float h = tuple->get_board_value(child[i].get_board(), color);
-
+                float h;
                 // check whether MCTS with tuple value
                 if (!with_tuple)    h = 0.0f;
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 0.6f * h;
+                else if(!to_record) {
+                    h = tuple->get_board_value(child[i].get_board(), color);
+                }
+                else {
+                    uint128_t hash = child[i].get_board().board_hash();
+                    if(tweight.find(hash) == tweight.end())
+                    {
+                        if (gc <= 30)
+                        {
+                            tweight.emplace(hash, tuple->minimax_search(child[i].get_board(), color, 3, -1 , 1));
+                            h = tweight.at(hash);
+                        }
+                        else h = tuple->minimax_search(child[i].get_board(), color, 3, -1 , 1);
+                    }
+                    else h = tweight.at(hash);
+                } 
+                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 1.0f * h / log2(n-w);
 
                 if (best_value < value) {
                     best_value = value;
@@ -208,6 +229,8 @@ private:
 
 private:
     Tuple *tuple;
-    bool with_tuple;
+    const bool with_tuple;
     std::default_random_engine engine;
+    umap_uf &tweight;
+    int gc;
 };

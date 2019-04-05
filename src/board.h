@@ -2,11 +2,12 @@
 #include <array>
 #include <iostream>
 #include <vector>
+#include <bitset>
 #include "utilities.h"
 #define F_LAYER 0x0055005500550055ULL
 #define S_LAYER 0x0000333300003333ULL
 #define T_LAYER 0x000000000F0F0F0FULL
-
+typedef std::bitset<128> uint128_t;
 /**
  * 
  * bitboard for Surakarta
@@ -43,7 +44,7 @@ public:
     }
 
 public:
-    void get_possible_eat(std::vector<unsigned> &eats, int color) const {
+    void get_possible_eat(std::vector<unsigned> &eats, const int color) const {
         Board::data mine = color ? board_white : board_black;
         Board::data theirs = (color ^ 1) ? board_white : board_black;
         Board::data occupied = mine | theirs | Board::BORDER;
@@ -86,7 +87,7 @@ public:
         }
     }
 
-    void get_possible_move(std::vector<unsigned> &moves, int color) const {
+    void get_possible_move(std::vector<unsigned> &moves, const int color) const {
         Board::data mine = color ? board_white : board_black;
         Board::data theirs = (color ^ 1) ? board_white : board_black;
         Board::data occupied = mine | theirs | Board::BORDER;
@@ -100,6 +101,11 @@ public:
                 if (empty & (1ULL << (i + j))) moves.push_back(((i + j) << 6) | i);
             }
         }
+    }
+
+    inline uint128_t board_hash() {
+        std::bitset<128> tb(board_black), tw(board_white);
+        return (tw << 64) | tb ;
     }
 
 public:
