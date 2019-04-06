@@ -3,8 +3,6 @@
 #include <fstream>
 #include <thread>
 #include <mutex>
-#include <unordered_map>
-#include <functional>
 #include "board.h"
 #include "action.h"
 #include "agent.h"
@@ -19,9 +17,7 @@ std::mutex mtx;
 int fight_black_win, fight_white_win;
 
 void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, int seeds) {
-    umap_uf tweight;
-    tweight.reserve(10000009);
-    MCTS mcts_tuple(tuple, true, 2 * seeds + 10, tweight), mcts(tuple, false, seeds);
+    MCTS mcts_tuple(tuple, true, 2 * seeds + 10), mcts(tuple, false, seeds);
     TuplePlayer tuple_player(tuple);
     RandomPlayer random_player;
     int black_win = 0, white_win = 0;
@@ -66,7 +62,6 @@ void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, in
     fight_white_win += white_win;
     mtx.unlock();
     // std::cout << black_win << " " << white_win << std::endl;
-    std::cout << tweight.size()<<" ";
 }
 
 void fight(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count) {

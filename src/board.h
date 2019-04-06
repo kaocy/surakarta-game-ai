@@ -7,7 +7,6 @@
 #define F_LAYER 0x0055005500550055ULL
 #define S_LAYER 0x0000333300003333ULL
 #define T_LAYER 0x000000000F0F0F0FULL
-typedef std::bitset<128> uint128_t;
 /**
  * 
  * bitboard for Surakarta
@@ -101,11 +100,6 @@ public:
                 if (empty & (1ULL << (i + j))) moves.push_back(((i + j) << 6) | i);
             }
         }
-    }
-
-    inline uint128_t board_hash() {
-        std::bitset<128> tb(board_black), tw(board_white);
-        return (tw << 64) | tb ;
     }
 
 public:

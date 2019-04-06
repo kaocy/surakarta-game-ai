@@ -82,7 +82,7 @@ public:
     }
 
 public:
-    float minimax_search(const Board &board, const int player, const int level, float alp, float bet) {
+    float alphabeta_search(const Board &board, const int player, const int level, float alp, float bet) {
         if (board.game_over()) return -alp;
         std::vector<unsigned> eats, moves;
         eats.clear(); moves.clear();
@@ -94,7 +94,7 @@ public:
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
             float value;
             if (level <= 1) value = get_board_value(tmp, player ^ 1);
-            else value = minimax_search(tmp, player ^ 1, level - 1, -bet, -alp);
+            else value = alphabeta_search(tmp, player ^ 1, level - 1, -bet, -alp);
             alp = std::max(alp, value);
             if (alp >= bet) return -alp;
         }
@@ -103,7 +103,7 @@ public:
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
             float value;
             if (level <= 1) value = get_board_value(tmp, player ^ 1);
-            else value = minimax_search(tmp, player ^ 1, level - 1, -bet, -alp);
+            else value = alphabeta_search(tmp, player ^ 1, level - 1, -bet, -alp);
             alp = std::max(alp, value);
             if (alp >= bet) return -alp;
         }

@@ -2,19 +2,14 @@
 #include <cmath>
 #include <vector>
 #include <random>
-#include <unordered_map>
-#include <functional>
-#include <bitset>
 #include "tree.h"
 #include "board.h"
 #include "tuple.h"
 #include "utilities.h"
-typedef std::unordered_map<uint128_t, float> umap_uf;
 class MCTS {
 public:
-    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple), tweight (*(umap_uf*)0) { engine.seed(10); }
-    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed) : tuple(tuple), with_tuple(with_tuple), tweight (*(umap_uf*)0) { engine.seed(sed); }
-    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed, umap_uf &tweight) : tuple(tuple), with_tuple(with_tuple), tweight(tweight) { engine.seed(sed); }
+    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(10); }
+    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed) : tuple(tuple), with_tuple(with_tuple) { engine.seed(sed); }
 
     void playing(Board &board, int player, int sim, const int gcount) {
         // play with MCTS
@@ -54,32 +49,13 @@ private:
             float best_value = -1e9;
             float t = float(node->get_visit_count()) + 1;
             std::vector<TreeNode> &child = node->get_all_child();
-            int color = node->get_player();
-            const bool to_record = ((Bitcount(node->get_board(0)) > 8) && (Bitcount(node->get_board(1)) > 8));
             // find the child with maximum UCB value plus n-tuple weight
             for (size_t i = 0; i < child.size(); i++) {
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
-                float h;
+                float h = child[i].get_abweight();
                 // check whether MCTS with tuple value
-                if (!with_tuple)    h = 0.0f;
-                else if(!to_record) {
-                    h = tuple->get_board_value(child[i].get_board(), color);
-                }
-                else {
-                    uint128_t hash = child[i].get_board().board_hash();
-                    if(tweight.find(hash) == tweight.end())
-                    {
-                        if (gc <= 30)
-                        {
-                            tweight.emplace(hash, tuple->minimax_search(child[i].get_board(), color, 3, -1 , 1));
-                            h = tweight.at(hash);
-                        }
-                        else h = tuple->minimax_search(child[i].get_board(), color, 3, -1 , 1);
-                    }
-                    else h = tweight.at(hash);
-                } 
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 1.0f * h / log2(n-w);
+                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 2.0f * h / log2(n-w);
 
                 if (best_value < value) {
                     best_value = value;
@@ -95,24 +71,32 @@ private:
         // std::cout << "expansion\n";
         const Board& board = leaf->get_board();
         int player = leaf->get_player();
-
+        const int lyr = leaf->get_layer(); 
         // no need to expand if game is over
         if (board.game_over())  return leaf;
 
         std::vector<unsigned> eats, moves;
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
-
+        //bool to_record = ((Bitcount(board.get_board(0)) > 9) && (Bitcount(board.get_board(1)) > 9));
         // expand all the possible child node
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-            leaf->get_all_child().push_back(TreeNode(tmp, player ^ 1, leaf));
+            float tw;
+            if (!with_tuple) tw = 0.0f;
+            else if (lyr < 3) tw = tuple->alphabeta_search(tmp, player, 4 - lyr, -1, 1);
+            else tw = tuple->get_board_value(tmp, player);
+            leaf->get_all_child().push_back(TreeNode(tmp, player ^ 1, leaf, tw, lyr + 1));
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-            leaf->get_all_child().push_back(TreeNode(tmp, player ^ 1, leaf));
+            float tw;
+            if (!with_tuple) tw = 0.0f;
+            else if (lyr < 3) tw = tuple->alphabeta_search(tmp, player, 4 - lyr, -1, 1);
+            else tw = tuple->get_board_value(tmp, player);
+            leaf->get_all_child().push_back(TreeNode(tmp, player ^ 1, leaf, tw, lyr + 1));
         }
 
         // there are no actions can be made
@@ -231,6 +215,5 @@ private:
     Tuple *tuple;
     const bool with_tuple;
     std::default_random_engine engine;
-    umap_uf &tweight;
     int gc;
 };
