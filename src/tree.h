@@ -6,9 +6,9 @@ class TreeNode {
 public:
     TreeNode() {}
     TreeNode(const Board &b) : 
-        parent(NULL), board(b), win_score(5), visit_count(9), player(0), explore(false) { child.clear(); }
-    TreeNode(const Board &b, int player, TreeNode* parent) : 
-        parent(parent), board(b), win_score(5), visit_count(9), player(player), explore(false) { child.clear(); }
+        parent(NULL), board(b), win_score(5), visit_count(9), state_value(0.0f), player(0), explore(false) { child.clear(); }
+    TreeNode(const Board &b, float state_value, int player, TreeNode* parent) : 
+        parent(parent), board(b), win_score(5), visit_count(9), state_value(state_value), player(player), explore(false) { child.clear(); }
     TreeNode(const TreeNode& node) = default;
     TreeNode& operator =(const TreeNode& node) = default;
 
@@ -23,6 +23,9 @@ public:
 
     int get_visit_count() { return visit_count; }
     void add_visit_count() { visit_count++; }
+
+    float get_state_value() { return state_value; }
+    void set_state_value(float state_value) { this->state_value = state_value; }
 
     int get_player() { return player; }
     void set_player(int player) { this->player = player; }
@@ -43,6 +46,7 @@ private:
     Board board;
     int win_score;
     int visit_count;
+    float state_value; // tuple value
     int player; // current player
     bool explore;
     std::vector<TreeNode> child; 

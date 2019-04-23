@@ -44,21 +44,24 @@ private:
         // std::cout << "selection\n";
         TreeNode* node = root;
         TreeNode* best_node = nullptr;
+
         while (node->get_all_child().size() != 0) {
             float best_value = -1e9;
             float t = float(node->get_visit_count()) + 1;
             std::vector<TreeNode> &child = node->get_all_child();
-            int color = node->get_player();
 
-            // find the child with maximum UCB value plus n-tuple weight
+            // find the child with maximum UCB value + Progressive Bias
             for (size_t i = 0; i < child.size(); i++) {
                 float w = float(child[i].get_win_score());
                 float n = float(child[i].get_visit_count()) + 1;
-                float h = tuple->get_board_value(child[i].get_board(), color);
+                float h = child[i].get_state_value();
 
                 // check whether MCTS with tuple value
                 if (!with_tuple)    h = 0.0f;
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 0.6f * h;
+
+                float ucb = (-w / n) + sqrt(2 * log2(t) / n);
+                float pb = 3.0f * h / log2(n);
+                float value = ucb + pb;
 
                 if (best_value < value) {
                     best_value = value;
@@ -82,16 +85,18 @@ private:
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
 
-        // expand all the possible child node
+        // expand all the possible child node and calculate tuple value
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-            leaf->get_all_child().push_back(TreeNode(tmp, player ^ 1, leaf));
+            float state_value = tuple->get_board_value(tmp, player);
+            leaf->get_all_child().push_back(TreeNode(tmp, state_value, player ^ 1, leaf));
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-            leaf->get_all_child().push_back(TreeNode(tmp, player ^ 1, leaf));
+            float state_value = tuple->get_board_value(tmp, player);
+            leaf->get_all_child().push_back(TreeNode(tmp, state_value, player ^ 1, leaf));
         }
 
         // there are no actions can be made
@@ -120,6 +125,7 @@ private:
 
         std::uniform_real_distribution<> dis(0, 1);
         std::vector<unsigned> eats, moves;
+
         // playout for at most 100 steps
         for (int i = 0; i < 100 && !board.game_over(); i++) {
             eats.clear(); moves.clear();
