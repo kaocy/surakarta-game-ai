@@ -31,6 +31,10 @@ public:
     // Board() : board_white(0x00007E0000000000ULL), board_black(0x00000000007E0000ULL) {}
     Board(const Board& b) = default;
     Board& operator =(const Board& b) = default;
+    bool operator !=(const Board& b) {
+        return !((board_white == b.board_white) &&
+                 (board_black == b.board_black));
+    }
     data& get_board(unsigned int i) {
         return (i) ? board_white : board_black;
     }

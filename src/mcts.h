@@ -9,15 +9,35 @@
 
 class MCTS {
 public:
-    MCTS(Tuple *tuple, bool with_tuple = false) : tuple(tuple), with_tuple(with_tuple) { engine.seed(10); }
-    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed) : tuple(tuple), with_tuple(with_tuple) { engine.seed(sed); }
+    MCTS(Tuple *tuple, bool with_tuple = false) :
+        tuple(tuple),
+        with_tuple(with_tuple) { engine.seed(10); }
+
+    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed) :
+        tuple(tuple),
+        with_tuple(with_tuple) { engine.seed(sed); }
+
     void playing(Board &board, int player, int sim) {
         // play with MCTS
-        board = find_next_move(board, player, sim);
+        TreeNode node = find_next_move(board, player, sim);
+        if (node.get_board() != board) {
+            board = node.get_board();
+        }
+    }
+
+    std::pair<std::string, unsigned> training(Board &board, int player, int sim) {
+        // play with MCTS
+        TreeNode node = find_next_move(board, player, sim);
+
+        // return best node's action
+        if (node.get_board() != board) return node.get_prev_action();
+
+        // cannot find child node
+        return std::make_pair("none", 0);
     }
 
     // return board after best action
-    Board find_next_move(Board board, int player, int sim) {
+    TreeNode find_next_move(Board board, int player, int sim) {
         Tree tree(board);
         TreeNode root = tree.get_root();
         root.set_explore();
@@ -35,8 +55,10 @@ public:
             // Phase 4 - Backpropagation
             backpropagation(leaf, value);
         }
-        if (root.get_all_child().size() == 0) return board;
-        return root.get_best_child_node().get_board();
+        // cannot find move
+        if (root.get_all_child().size() == 0) return root;
+        // return best move
+        return root.get_best_child_node();
     }
 
 private:
@@ -85,18 +107,30 @@ private:
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
 
-        // expand all the possible child node and calculate tuple value
+        // expand all the possible child node, calculate tuple value, record previous action
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            leaf->get_all_child().push_back(TreeNode(tmp, state_value, player ^ 1, leaf));
+            leaf->get_all_child().push_back(TreeNode(
+                tmp,
+                state_value,
+                player ^ 1,
+                leaf,
+                std::make_pair("eat", code)
+            ));
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            leaf->get_all_child().push_back(TreeNode(tmp, state_value, player ^ 1, leaf));
+            leaf->get_all_child().push_back(TreeNode(
+                tmp,
+                state_value,
+                player ^ 1,
+                leaf,
+                std::make_pair("move", code)
+            ));
         }
 
         // there are no actions can be made

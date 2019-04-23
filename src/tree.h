@@ -6,9 +6,25 @@ class TreeNode {
 public:
     TreeNode() {}
     TreeNode(const Board &b) : 
-        parent(NULL), board(b), win_score(5), visit_count(9), state_value(0.0f), player(0), explore(false) { child.clear(); }
-    TreeNode(const Board &b, float state_value, int player, TreeNode* parent) : 
-        parent(parent), board(b), win_score(5), visit_count(9), state_value(state_value), player(player), explore(false) { child.clear(); }
+        parent(NULL),
+        board(b),
+        win_score(5),
+        visit_count(9),
+        state_value(0.0f),
+        player(0),
+        explore(false),
+        prev_action(std::make_pair("none", 0)) { child.clear(); }
+
+    TreeNode(const Board &b, float state_value, int player, TreeNode* parent, std::pair<std::string, unsigned> prev_action) : 
+        parent(parent),
+        board(b),
+        win_score(5),
+        visit_count(9),
+        state_value(state_value), 
+        player(player),
+        explore(false),
+        prev_action(prev_action) { child.clear(); }
+
     TreeNode(const TreeNode& node) = default;
     TreeNode& operator =(const TreeNode& node) = default;
 
@@ -41,6 +57,10 @@ public:
                                  [](const TreeNode A, const TreeNode B) { return A.visit_count < B.visit_count; });
     }
 
+    std::pair<std::string, unsigned> get_prev_action() { return prev_action; }
+    std::string get_prev_action_type () { return prev_action.first; }
+    unsigned get_prev_action_code () { return prev_action.second; }
+
 private:
     TreeNode *parent;
     Board board;
@@ -49,7 +69,8 @@ private:
     float state_value; // tuple value
     int player; // current player
     bool explore;
-    std::vector<TreeNode> child; 
+    std::vector<TreeNode> child;
+    std::pair<std::string, unsigned> prev_action;
 };
 
 class Tree {
