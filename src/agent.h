@@ -122,7 +122,7 @@ public:
 
     // use MCTS in training
     virtual Action take_action(const Board& before) {
-        MCTS mcts(tuple, true);
+        MCTS mcts(tuple, true, 400);
         Board tmp = Board(before);
         std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1);
 

@@ -9,13 +9,10 @@
 
 class MCTS {
 public:
-    MCTS(Tuple *tuple, bool with_tuple = false) :
+    MCTS(Tuple *tuple, bool with_tuple = false, int simulation_count = 5000, uint32_t seed = 10) :
         tuple(tuple),
-        with_tuple(with_tuple) { engine.seed(10); }
-
-    MCTS(Tuple *tuple, bool with_tuple, uint32_t sed) :
-        tuple(tuple),
-        with_tuple(with_tuple) { engine.seed(sed); }
+        with_tuple(with_tuple),
+        simulation_count(simulation_count) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
         // play with MCTS
@@ -44,7 +41,7 @@ public:
         root.set_player(player);
 
         // select best child after 5000 MCTS search
-        for (int i = 0; i < 5000; i++) {
+        for (int i = 0; i < simulation_count; i++) {
             // Phase 1 - Selection 
             TreeNode* leaf = selection(&root);
             // Phase 2 - Expansion
@@ -249,5 +246,6 @@ private:
 private:
     Tuple *tuple;
     bool with_tuple;
+    int simulation_count;
     std::default_random_engine engine;
 };
