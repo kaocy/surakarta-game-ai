@@ -2,11 +2,15 @@
 #include <algorithm>
 #include <vector>
 #include <random>
+#include <bitset>
+#include <unordered_map>
+#include <iterator>
 #include "board.h"
 #include "action.h"
 #include "utilities.h"
 #include "tuple.h"
 #include "mcts.h"
+typedef std::bitset<128> bs128;
 
 class Agent {
 public:
@@ -34,11 +38,12 @@ protected:
  */
 class TrainingPlayer : public RandomAgent {
 public:
-    TrainingPlayer(unsigned color, Tuple *tuple) : RandomAgent(), color(color), tuple(tuple) {}
+    TrainingPlayer(unsigned color, Tuple *tuple) : RandomAgent(), color(color), tuple(tuple) {repetition.reserve(400);}
     std::string role() { return color ? "White" : "Black"; }
 
     virtual void open_episode() {
         record.clear();
+        repetition.clear();
         epsilon = 0.9f;
     }
 
@@ -125,12 +130,21 @@ public:
         MCTS mcts(tuple, true, 400);
         Board tmp = Board(before);
         std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1);
-
         std::string type = prev_action.first;
         unsigned code = prev_action.second;
-        if (type == "eat")   return Action::Eat(code);
-        if (type == "move")  return Action::Move(code);
-
+        record.emplace_back(tmp);
+        if (type == "eat") {
+            return Action::Eat(code);
+        }
+        if (type == "move") {
+            bs128 tmpbs = (bs128(tmp.get_board(1)) << 64) | bs128(tmp.get_board(0));
+            auto iter = repetition.find(tmpbs);
+            if(iter == repetition.end()){
+                repetition.insert({tmpbs,1});
+            }
+            else if((iter->second)++ >= 2) return Action();
+            return Action::Move(code);
+        }
         // cannot find valid action
         return Action();
     }
@@ -139,6 +153,7 @@ private:
     unsigned color; // 0 for black or 1 for white
     float epsilon;
     std::vector<Board> record;
+    std::unordered_map<bs128,int> repetition;
     Tuple *tuple;
 };
 
