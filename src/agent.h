@@ -10,7 +10,7 @@
 #include "utilities.h"
 #include "tuple.h"
 #include "mcts.h"
-typedef std::bitset<128> bs128;
+typedef std::bitset<256> bs256;
 
 class Agent {
 public:
@@ -129,7 +129,7 @@ public:
     virtual Action take_action(const Board& before) {
         MCTS mcts(tuple, true, 400);
         Board tmp = Board(before);
-        std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1);
+        std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1, record.size());
         std::string type = prev_action.first;
         unsigned code = prev_action.second;
         record.emplace_back(tmp);
@@ -137,23 +137,28 @@ public:
             return Action::Eat(code);
         }
         if (type == "move") {
-            bs128 tmpbs = (bs128(tmp.get_board(1)) << 64) | bs128(tmp.get_board(0));
-            auto iter = repetition.find(tmpbs);
-            if(iter == repetition.end()){
-                repetition.insert({tmpbs,1});
-            }
-            else if((iter->second)++ >= 2) return Action();
+            if(set_repitition(before, tmp) > 2) return Action();
             return Action::Move(code);
         }
         // cannot find valid action
         return Action();
     }
-
+private:
+    int set_repitition(const Board& before,const Board& after){
+        bs256 tmpbs = (bs256(before.get_board(1)) << 192) | (bs256(before.get_board(0)) << 128) |
+                      (bs256(before.get_board(1)) << 64)  | bs256(before.get_board(0));
+        auto iter = repetition.find(tmpbs);
+        if(iter == repetition.end()){
+            repetition.insert({tmpbs,1});
+            return 1;
+        }
+        return ++(iter->second);
+    }
 private:
     unsigned color; // 0 for black or 1 for white
     float epsilon;
     std::vector<Board> record;
-    std::unordered_map<bs128,int> repetition;
+    std::unordered_map<bs256,int> repetition;
     Tuple *tuple;
 };
 
@@ -208,7 +213,7 @@ private:
 class RandomPlayer : public RandomAgent {
 public:
     RandomPlayer() : RandomAgent() {}
-
+    RandomPlayer(int seeds) : RandomAgent() {engine.seed(seeds);}
 public:
     void playing(Board &board, int player) {
         // random play with eat first

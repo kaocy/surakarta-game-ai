@@ -23,9 +23,9 @@ public:
         }
     }
 
-    std::pair<std::string, unsigned> training(Board &board, int player, int sim) {
+    std::pair<std::string, unsigned> training(Board &board, int player, int sim, int game_length) {
         // play with MCTS
-        TreeNode node = find_next_move(board, player, sim);
+        TreeNode node = find_next_move(board, player, sim, game_length);
 
         // return best node's action
         if (node.get_board() != board) {
@@ -38,7 +38,7 @@ public:
     }
 
     // return board after best action
-    TreeNode find_next_move(Board board, int player, int sim) {
+    TreeNode find_next_move(Board board, int player, int sim, int game_length = 10) {
         Tree tree(board);
         TreeNode root = tree.get_root();
         root.set_explore();
@@ -60,7 +60,9 @@ public:
         // cannot find move
         if (root.get_all_child().size() == 0) return root;
         // return best move
-        return root.get_best_child_node();
+        std::uniform_real_distribution<> dis(0, 1);
+        if (game_length >= 5) return root.get_best_child_node();
+        else                  return root.get_child_with_temperature(dis(engine));
     }
 
 private:
@@ -71,14 +73,14 @@ private:
 
         while (node->get_all_child().size() != 0) {
             float best_value = -1e9;
-            float t = float(node->get_visit_count()) + 1;
+            float t = float(node->get_visit_count());
             std::vector<TreeNode> &child = node->get_all_child();
 
             // find the child with maximum UCB value + Progressive Bias
             for (size_t i = 0; i < child.size(); i++) {
                 // float w = float(child[i].get_win_count());
                 float q = child[i].get_win_rate();
-                float n = float(child[i].get_visit_count()) + 1;
+                float n = float(child[i].get_visit_count());
                 float h = child[i].get_state_value();
 
                 // check whether MCTS with tuple value

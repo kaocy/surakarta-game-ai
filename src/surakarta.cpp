@@ -19,7 +19,7 @@ int fight_black_win, fight_white_win;
 void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, int seeds) {
     MCTS mcts_tuple(tuple, true, seeds), mcts(tuple, false, seeds);
     TuplePlayer tuple_player(tuple);
-    RandomPlayer random_player;
+    RandomPlayer random_player(seeds);
     
     int black_win = 0, white_win = 0;
     for (int i = 0; i < game_count; i++) {

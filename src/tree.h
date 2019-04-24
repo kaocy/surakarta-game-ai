@@ -8,8 +8,8 @@ public:
     TreeNode(const Board &b) : 
         parent(NULL),
         board(b),
-        win_count(5),
-        visit_count(9),
+        win_count(1),
+        visit_count(2),
         win_rate(0.0f),
         state_value(0.0f),
         player(0),
@@ -19,8 +19,8 @@ public:
     TreeNode(const Board &b, float state_value, int player, TreeNode* parent, std::pair<std::string, unsigned> prev_action) : 
         parent(parent),
         board(b),
-        win_count(5),
-        visit_count(9),
+        win_count(1),
+        visit_count(2),
         win_rate(0.0f),
         state_value(state_value), 
         player(player),
@@ -62,6 +62,14 @@ public:
     TreeNode get_best_child_node() {
         return *std::max_element(child.begin(), child.end(),
                                  [](const TreeNode A, const TreeNode B) { return A.visit_count < B.visit_count; });
+    }
+    TreeNode get_child_with_temperature(double rd) {
+        int total = visit_count + (child.size() - 1) * 2;
+        int chosen = total * rd;
+        for(auto tmp : child){
+            if((chosen -= tmp.get_visit_count()) <= 0) return tmp;
+        }
+        return child.back();
     }
 
     std::pair<std::string, unsigned> get_prev_action() { return prev_action; }
