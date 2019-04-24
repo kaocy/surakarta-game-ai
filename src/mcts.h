@@ -27,7 +27,10 @@ public:
         TreeNode node = find_next_move(board, player, sim);
 
         // return best node's action
-        if (node.get_board() != board) return node.get_prev_action();
+        if (node.get_board() != board) {
+            board = node.get_board();
+            return node.get_prev_action();
+        }
 
         // cannot find child node
         return std::make_pair("none", 0);

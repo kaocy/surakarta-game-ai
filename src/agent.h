@@ -128,9 +128,18 @@ public:
 
         std::string type = prev_action.first;
         unsigned code = prev_action.second;
-        if (type == "eat")   return Action::Eat(code);
-        if (type == "move")  return Action::Move(code);
-
+        if (type == "eat") {
+            record.emplace_back(tmp);
+            // std::cerr<<std::hex<<(tmp.get_board(0))<<'\n';
+            // std::cerr<<std::hex<<(tmp.get_board(1))<<'\n';
+            return Action::Eat(code);
+        }
+        if (type == "move") {
+            record.emplace_back(tmp);
+            // std::cerr<<std::hex<<(tmp.get_board(0))<<'\n';
+            // std::cerr<<std::hex<<(tmp.get_board(1))<<'\n';
+            return Action::Move(code);
+        }
         // cannot find valid action
         return Action();
     }
