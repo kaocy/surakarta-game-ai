@@ -8,8 +8,9 @@ public:
     TreeNode(const Board &b) : 
         parent(NULL),
         board(b),
-        win_score(5),
+        win_count(5),
         visit_count(9),
+        win_rate(0.0f),
         state_value(0.0f),
         player(0),
         explore(false),
@@ -18,8 +19,9 @@ public:
     TreeNode(const Board &b, float state_value, int player, TreeNode* parent, std::pair<std::string, unsigned> prev_action) : 
         parent(parent),
         board(b),
-        win_score(5),
+        win_count(5),
         visit_count(9),
+        win_rate(0.0f),
         state_value(state_value), 
         player(player),
         explore(false),
@@ -34,11 +36,16 @@ public:
     Board& get_board() { return board; }
     const Board& get_board() const { return board; }
 
-    int get_win_score() { return win_score; }
-    void add_win_score() { win_score++; }
+    int get_win_count() { return win_count; }
+    void add_win_count() { win_count++; }
 
     int get_visit_count() { return visit_count; }
     void add_visit_count() { visit_count++; }
+
+    float get_win_rate() { return win_rate; }
+    void update_win_rate(float win_rate) {
+        this->win_rate = (this->win_rate * visit_count + win_rate) / (visit_count + 1);
+    }
 
     float get_state_value() { return state_value; }
     void set_state_value(float state_value) { this->state_value = state_value; }
@@ -64,8 +71,9 @@ public:
 private:
     TreeNode *parent;
     Board board;
-    int win_score;
+    int win_count;
     int visit_count;
+    float win_rate;
     float state_value; // tuple value
     int player; // current player
     bool explore;

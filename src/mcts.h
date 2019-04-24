@@ -48,7 +48,8 @@ public:
             if (leaf->is_explore()) leaf = expansion(leaf);
             leaf->set_explore();
             // Phase 3 - Simulation
-            int value = simulation(leaf, sim);
+            // int value = simulation(leaf, sim);
+            float value = tuple->get_board_value(leaf->get_board(), leaf->get_player() ^ 1);
             // Phase 4 - Backpropagation
             backpropagation(leaf, value);
         }
@@ -71,14 +72,15 @@ private:
 
             // find the child with maximum UCB value + Progressive Bias
             for (size_t i = 0; i < child.size(); i++) {
-                float w = float(child[i].get_win_score());
+                // float w = float(child[i].get_win_count());
+                float q = child[i].get_win_rate();
                 float n = float(child[i].get_visit_count()) + 1;
                 float h = child[i].get_state_value();
 
                 // check whether MCTS with tuple value
                 if (!with_tuple)    h = 0.0f;
 
-                float ucb = (-w / n) + sqrt(2 * log2(t) / n);
+                float ucb = q + sqrt(2 * log2(t) / n);
                 float pb = 3.0f * h / log2(n);
                 float value = ucb + pb;
 
@@ -233,11 +235,21 @@ private:
         return -1;
     }
 
-    void backpropagation(TreeNode *node, int value) {
+    // void backpropagation(TreeNode *node, int value) {
+    //     // std::cout << "backpropagation\n";
+    //     while (node != NULL) {
+    //         node->add_visit_count();
+    //         if (value == 1) node->add_win_count();
+    //         node = node->get_parent();
+    //         value *= -1;
+    //     }
+    // }
+
+    void backpropagation(TreeNode *node, float value) {
         // std::cout << "backpropagation\n";
         while (node != NULL) {
-            node->add_visit_count();
-            if (value == 1) node->add_win_score();
+            node->update_win_rate(value);
+            node->add_visit_count();  
             node = node->get_parent();
             value *= -1;
         }
