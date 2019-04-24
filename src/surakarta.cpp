@@ -105,7 +105,7 @@ int main(int argc, const char* argv[]) {
     std::cout << std::endl << std::endl;
 
     size_t total = 1000, block = 0, limit = 0, game_count = 500;
-    int sim1 = 0, sim2 = 0;
+    int sim1 = 1, sim2 = 1;
     std::string play1_args, play2_args, tuple_args;
     bool summary = false;
     for (int i = 1; i < argc; i++) {
@@ -142,14 +142,14 @@ int main(int argc, const char* argv[]) {
         play2.open_episode();
         stat.open_episode(play1.role() + ":" + play2.role());
         Episode& game = stat.back();
-        int count = 100;
+        // int count = 100;
         while (true) {
             TrainingPlayer& who = game.take_turns(play1, play2);
             Action action = who.take_action(game.state());
 
             if (game.apply_action(action) != true) break;
             if (who.check_for_win(game.state())) break;
-            if (--count == 0) break;
+            // if (--count == 0) break;
         }
         int black_bitcount = Bitcount(game.state().get_board(0));
         int white_bitcount = Bitcount(game.state().get_board(1));

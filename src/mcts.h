@@ -2,6 +2,7 @@
 #include <cmath>
 #include <vector>
 #include <random>
+#include <unordered_map>
 #include "tree.h"
 #include "board.h"
 #include "tuple.h"
@@ -147,11 +148,10 @@ private:
         Board& board = tmp.get_board();
         int player = tmp.get_player();
         int origin_player = player;
-        
+        int black_bitcount = Bitcount(board.get_board(0));
+        int white_bitcount = Bitcount(board.get_board(1));
         // check if game is over before simulation
         if (board.game_over()) {
-            int black_bitcount = Bitcount(board.get_board(0));
-            int white_bitcount = Bitcount(board.get_board(1));
             if (origin_player == 0 && black_bitcount == 0) return -1;
             if (origin_player == 1 && white_bitcount == 0) return -1;
             return 1;
@@ -222,13 +222,13 @@ private:
                     else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
                 }
             }
-
+            black_bitcount = Bitcount(board.get_board(0));
+            white_bitcount = Bitcount(board.get_board(1));
+            if((black_bitcount - white_bitcount > 3) || (black_bitcount - white_bitcount < -3)) break;
             player ^= 1; // toggle player
         }
 
         // the one has more piece wins
-        int black_bitcount = Bitcount(board.get_board(0));
-        int white_bitcount = Bitcount(board.get_board(1));
         // std::cout << black_bitcount << " " << white_bitcount << std::endl;
         if (origin_player == 0 && black_bitcount > white_bitcount)  return 1;
         if (origin_player == 1 && black_bitcount < white_bitcount)  return 1;
