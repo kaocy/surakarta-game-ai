@@ -44,7 +44,7 @@ public:
 
     float get_win_rate() { return win_rate; }
     void update_win_rate(float win_rate) {
-        this->win_rate = (this->win_rate * visit_count + win_rate) / (visit_count + 1);
+        this->win_rate += (win_rate - this->win_rate) / (visit_count + 1);
     }
 
     float get_state_value() { return state_value; }

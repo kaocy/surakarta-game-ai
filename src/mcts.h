@@ -53,7 +53,8 @@ public:
             leaf->set_explore();
             // Phase 3 - Simulation
             // int value = simulation(leaf, sim);
-            float value = tuple->get_board_value(leaf->get_board(), leaf->get_player() ^ 1);
+            // Backup from the leaf so multiple with -1
+            float value = tuple->get_board_value(leaf->get_board(), leaf->get_player());
             // Phase 4 - Backpropagation
             backpropagation(leaf, value);
         }
@@ -254,7 +255,7 @@ private:
         // std::cout << "backpropagation\n";
         while (node != NULL) {
             node->update_win_rate(value);
-            node->add_visit_count();  
+            node->add_visit_count();
             node = node->get_parent();
             value *= -1;
         }

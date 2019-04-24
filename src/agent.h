@@ -144,12 +144,12 @@ public:
         return Action();
     }
 private:
-    int set_repitition(const Board& before,const Board& after){
+    int set_repitition(const Board& before, const Board& after){
         bs256 tmpbs = (bs256(before.get_board(1)) << 192) | (bs256(before.get_board(0)) << 128) |
                       (bs256(before.get_board(1)) << 64)  | bs256(before.get_board(0));
         auto iter = repetition.find(tmpbs);
-        if(iter == repetition.end()){
-            repetition.insert({tmpbs,1});
+        if (iter == repetition.end()) {
+            repetition.insert({ tmpbs, 1 });
             return 1;
         }
         return ++(iter->second);
@@ -181,7 +181,7 @@ public:
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-            float value = tuple->minimax_search(tmp, player, 1, -bet, -alp);
+            float value = tuple->get_board_value(tmp, player);
             if (value > best_value) {
                 best_value = value;
                 best_code = code;
@@ -192,7 +192,7 @@ public:
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-            float value = tuple->minimax_search(tmp, player, 1, -bet, -alp);
+            float value = tuple->get_board_value(tmp, player);
             if (value > best_value) {
                 best_value = value;
                 best_code = code;
