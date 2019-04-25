@@ -38,7 +38,7 @@ public:
     }
 
     // return board after best action
-    TreeNode find_next_move(Board board, int player, int sim, const int game_length = 10) {
+    TreeNode find_next_move(Board board, int player, int sim, int game_length = 10) {
         Tree tree(board);
         TreeNode root = tree.get_root();
         root.set_explore();
@@ -77,16 +77,15 @@ private:
             const float t = log2(float(node->get_visit_count()));
             const float child_softmax_sum = node->get_child_softmax_total();
             std::vector<TreeNode> &child = node->get_all_child();
-
             // find the child with maximum UCB value + Progressive Bias
-            for(auto c_i : child){
-                float q = c_i.get_win_rate();
-                float n = float(c_i.get_visit_count());
-                // float h = c_i.get_state_value();
-                float poly = c_i.get_softmax_value() / child_softmax_sum;
+            for(size_t i = 0; i < child.size(); i++) {
+                float q = child[i].get_win_rate();
+                float n = float(child[i].get_visit_count());
+                // float h = child[i].get_state_value();
+                float poly = child[i].get_softmax_value() / child_softmax_sum;
                 // check whether MCTS with tuple value
                 if (!with_tuple) {
-                    // h = 0.0f; 
+                    // h = 0.0f;
                     poly = 1.0f;
                 }
                 float ucb = sqrt(2 * t / n);
@@ -95,9 +94,9 @@ private:
 
                 if (best_value < value) {
                     best_value = value;
-                    best_node = &c_i;
+                    best_node = &child[i];
                 }
-            }            
+            }
             node = best_node;
         }
         return node;
