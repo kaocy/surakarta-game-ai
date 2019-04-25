@@ -104,7 +104,7 @@ int main(int argc, const char* argv[]) {
     std::copy(argv, argv + argc, std::ostream_iterator<const char*>(std::cout, " "));
     std::cout << std::endl << std::endl;
 
-    size_t total = 1000, block = 0, limit = 0, game_count = 500;
+    size_t total = 1000, block = 0, limit = 0, game_count = 2000;
     int sim1 = 1, sim2 = 1;
     std::string play1_args, play2_args, tuple_args;
     bool summary = false;

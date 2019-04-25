@@ -12,17 +12,19 @@ public:
         visit_count(2),
         win_rate(0.0f),
         state_value(0.0f),
+        softmax_value(1.0f),
         player(0),
         explore(false),
         prev_action(std::make_pair("none", 0)) { child.clear(); }
 
-    TreeNode(const Board &b, float state_value, int player, TreeNode* parent, std::pair<std::string, unsigned> prev_action) : 
+    TreeNode(const Board &b, float state_value, float softmax_value, int player, TreeNode* parent, std::pair<std::string, unsigned> prev_action) : 
         parent(parent),
         board(b),
         win_count(1),
         visit_count(2),
         win_rate(0.0f),
-        state_value(state_value), 
+        state_value(state_value),
+        softmax_value(softmax_value),
         player(player),
         explore(false),
         prev_action(prev_action) { child.clear(); }
@@ -49,6 +51,12 @@ public:
 
     float get_state_value() { return state_value; }
     void set_state_value(float state_value) { this->state_value = state_value; }
+
+    float get_softmax_value() { return softmax_value; }
+    void set_softmax_value(float softmax_value) { this->softmax_value = softmax_value; }
+
+    float get_child_softmax_total() { return child_softmax_total; }
+    void set_child_softmax_total(float child_softmax_total) { this->child_softmax_total = child_softmax_total; }
 
     int get_player() { return player; }
     void set_player(int player) { this->player = player; }
@@ -83,6 +91,8 @@ private:
     int visit_count;
     float win_rate;
     float state_value; // tuple value
+    float softmax_value;
+    float child_softmax_total;
     int player; // current player
     bool explore;
     std::vector<TreeNode> child;

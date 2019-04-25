@@ -48,7 +48,7 @@ public:
         for (size_t i = 0; i < blk; i++) {
             auto& ep = *(--it);
             if (ep.winner() == "Black") black_win++;
-            else    white_win++;
+            else if (ep.winner() == "White")   white_win++;
             sop += ep.step();
             op1 += ep.step(0);
             op2 += ep.step(1);

@@ -49,8 +49,8 @@ public:
 
     virtual void close_episode(const std::string& flag = "") {
         float result = (flag == "Black") ? 1.0f : -1.0f;
-        for (int i = record.size() - 1; i >= 0; i--) {
-            tuple->train_weight(record[i], result);
+        for (Board i : record) {
+            tuple->train_weight(i, result);
         }
     }
 

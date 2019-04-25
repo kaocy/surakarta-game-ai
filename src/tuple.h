@@ -9,7 +9,7 @@
 
 class Tuple {
 public:
-    Tuple(const std::string& args = "") : alpha(0.001f) {       
+    Tuple(const std::string& args = "") : alpha(0.003f) {
         std::stringstream ss(args);
         for (std::string pair; ss >> pair; ) {
             std::string key = pair.substr(0, pair.find('='));
@@ -110,6 +110,8 @@ public:
     }
 
     float get_board_value(const Board &b, int player) {  // 0 black 1 white
+        if (b.get_board(0) == 0) return -1 * (player ? -1.0f : 1.0f);
+        if (b.get_board(1) == 0) return  1 * (player ? -1.0f : 1.0f);
         uint32_t o, s, l;
         board_to_tuple(b, o, s, l);
         unsigned outer_head = o >> 27, outer_index = o & ((1 << 27) - 1);

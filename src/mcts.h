@@ -38,7 +38,7 @@ public:
     }
 
     // return board after best action
-    TreeNode find_next_move(Board board, int player, int sim, int game_length = 10) {
+    TreeNode find_next_move(Board board, int player, int sim, const int game_length = 10) {
         Tree tree(board);
         TreeNode root = tree.get_root();
         root.set_explore();
@@ -53,8 +53,8 @@ public:
             leaf->set_explore();
             // Phase 3 - Simulation
             // int value = simulation(leaf, sim);
-            // Backup from the leaf so multiple with -1
-            float value = tuple->get_board_value(leaf->get_board(), leaf->get_player());
+            // Backup from the leaf so get the value of leaf player
+            float value = leaf->get_state_value();
             // Phase 4 - Backpropagation
             backpropagation(leaf, value);
         }
@@ -74,28 +74,30 @@ private:
 
         while (node->get_all_child().size() != 0) {
             float best_value = -1e9;
-            float t = float(node->get_visit_count());
+            const float t = log2(float(node->get_visit_count()));
+            const float child_softmax_sum = node->get_child_softmax_total();
             std::vector<TreeNode> &child = node->get_all_child();
 
             // find the child with maximum UCB value + Progressive Bias
-            for (size_t i = 0; i < child.size(); i++) {
-                // float w = float(child[i].get_win_count());
-                float q = child[i].get_win_rate();
-                float n = float(child[i].get_visit_count());
-                float h = child[i].get_state_value();
-
+            for(auto c_i : child){
+                float q = c_i.get_win_rate();
+                float n = float(c_i.get_visit_count());
+                // float h = c_i.get_state_value();
+                float poly = c_i.get_softmax_value() / child_softmax_sum;
                 // check whether MCTS with tuple value
-                if (!with_tuple)    h = 0.0f;
-
-                float ucb = q + sqrt(2 * log2(t) / n);
-                float pb = 3.0f * h / log2(n);
-                float value = ucb + pb;
+                if (!with_tuple) {
+                    // h = 0.0f; 
+                    poly = 1.0f;
+                }
+                float ucb = sqrt(2 * t / n);
+                //float pb = 3.0f * h / log2(n);
+                float value = q + poly * 20 * ucb ;
 
                 if (best_value < value) {
                     best_value = value;
-                    best_node = &child[i];
+                    best_node = &c_i;
                 }
-            }
+            }            
             node = best_node;
         }
         return node;
@@ -105,7 +107,7 @@ private:
         // std::cout << "expansion\n";
         const Board& board = leaf->get_board();
         int player = leaf->get_player();
-
+        float child_softmax_total = 0;
         // no need to expand if game is over
         if (board.game_over())  return leaf;
 
@@ -118,9 +120,12 @@ private:
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
+            float softmax_value = exp(state_value * 3);
+            child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
                 tmp,
                 state_value,
+                softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("eat", code)
@@ -130,15 +135,18 @@ private:
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
+            float softmax_value = exp(state_value * 3);
+            child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
                 tmp,
                 state_value,
+                softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("move", code)
             ));
         }
-
+        leaf->set_child_softmax_total(child_softmax_total);
         // there are no actions can be made
         if (leaf->get_all_child().size() == 0) return leaf;
 
@@ -263,7 +271,7 @@ private:
 
 private:
     Tuple *tuple;
-    bool with_tuple;
-    int simulation_count;
+    const bool with_tuple;
+    const int simulation_count;
     std::default_random_engine engine;
 };
