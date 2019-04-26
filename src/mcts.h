@@ -91,7 +91,7 @@ private:
                 }
                 float ucb = sqrt(2 * t / n);
                 //float pb = 3.0f * h / log2(n);
-                float value = q + poly * 20 * ucb ;
+                float value = q + poly * 10 * ucb ;
 
                 if (best_value < value) {
                     best_value = value;
@@ -158,7 +158,7 @@ private:
     void root_expansion(TreeNode* leaf) {
         // std::cout << "expansion\n";
         const Board& board = leaf->get_board();
-        int player = leaf->get_player();
+        const int player = leaf->get_player();
         float child_softmax_total = 0;
         // no need to expand if game is over
         if (board.game_over())  return;

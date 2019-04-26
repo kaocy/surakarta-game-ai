@@ -127,7 +127,7 @@ public:
 
     // use MCTS in training
     virtual Action take_action(const Board& before) {
-        MCTS mcts(tuple, true, 400);
+        MCTS mcts(tuple, true, 400, rd());
         Board tmp = Board(before);
         std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1, record.size());
         std::string type = prev_action.first;
@@ -159,6 +159,7 @@ private:
     float epsilon;
     std::vector<Board> record;
     std::unordered_map<bs256,int> repetition;
+    std::random_device rd;
     Tuple *tuple;
 };
 
