@@ -16,7 +16,7 @@ const std::string SIMULATION[] = {"(random)", "(eat-first)", "(tuple)"};
 std::mutex mtx;
 int fight_black_win, fight_white_win;
 
-void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, int seeds) {
+void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, uint32_t seeds) {
     MCTS mcts_tuple(tuple, true, seeds), mcts(tuple, false, seeds);
     TuplePlayer tuple_player(tuple);
     RandomPlayer random_player(seeds);
@@ -86,8 +86,9 @@ void fight(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_
 
     fight_black_win = 0, fight_white_win = 0;
     std::vector<std::thread> threads;
+    std::random_device rd;
     for(int i = 0; i < 5; i++) {
-        threads.push_back(std::thread(fight_thread, player1, player2, sim1, sim2, tuple, game_count / 5, i));
+        threads.push_back(std::thread(fight_thread, player1, player2, sim1, sim2, tuple, game_count / 5, rd()));
     }
     for (auto& th : threads) {
         th.join();
@@ -162,7 +163,7 @@ int main(int argc, const char* argv[]) {
         stat.close_episode(win);
 
         // after training some episodes, test playing result
-        if (stat.episode_count() % 10000 == 0) {
+        if (stat.episode_count() % 50000 == 0) {
             fight(2, 3, sim1, sim2, &tuple, game_count);
             fight(3, 2, sim2, sim1, &tuple, game_count);
         }

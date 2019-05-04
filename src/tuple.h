@@ -121,7 +121,7 @@ public:
         float outer_v = outer[outer_head & 0xF][outer_index] * ((outer_head & 16) ? -1.0f : 1.0f);
         float small_v = small[small_head & 0xF][small_index] * ((small_head & 16) ? -1.0f : 1.0f);
         float large_v = large[large_head & 0xF][large_index] * ((large_head & 16) ? -1.0f : 1.0f);
-        return (outer_v + 3 * small_v + 3 * large_v) / 7.0f * (player ? -1.0f : 1.0f);
+        return (outer_v + small_v + large_v) / 3.0f * (player ? -1.0f : 1.0f);
     }
 
     void set_board_value(const Board &b, float value) {

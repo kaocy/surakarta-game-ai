@@ -5,6 +5,7 @@
 #include <bitset>
 #include <unordered_map>
 #include <iterator>
+#include <unistd.h>
 #include "board.h"
 #include "action.h"
 #include "utilities.h"
@@ -24,10 +25,11 @@ public:
 
 class RandomAgent : public Agent {
 public:
-    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(17); }
+    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(rd()); }
     virtual ~RandomAgent() {}
 
 protected:
+    std::random_device rd;
     std::default_random_engine engine;
     std::uniform_real_distribution<> dis;
 };
@@ -159,7 +161,6 @@ private:
     float epsilon;
     std::vector<Board> record;
     std::unordered_map<bs256,int> repetition;
-    std::random_device rd;
     Tuple *tuple;
 };
 

@@ -63,8 +63,7 @@ public:
         if (root.get_all_child().size() == 0) return root;
         // return best move
         std::uniform_real_distribution<> dis(0, 1);
-        if (game_length >= 5) return root.get_best_child_node();
-        else                  return root.get_child_with_temperature(dis(engine));
+        return root.get_child_with_temperature(dis(engine));
     }
 
 private:
@@ -75,7 +74,7 @@ private:
 
         while (node->get_all_child().size() != 0) {
             float best_value = -1e9;
-            const float t = log2(float(node->get_visit_count()));
+            const float t = sqrt(float(node->get_visit_count()));
             const float child_softmax_sum = node->get_child_softmax_total();
             std::vector<TreeNode> &child = node->get_all_child();
             // find the child with maximum UCB value + Progressive Bias
@@ -89,9 +88,9 @@ private:
                     // h = 0.0f;
                     poly = 1.0f;
                 }
-                float ucb = sqrt(2 * t / n);
+                float ucb = t / n;
                 //float pb = 3.0f * h / log2(n);
-                float value = q + poly * 10 * ucb ;
+                float value = q + poly * ucb * 3;
 
                 if (best_value < value) {
                     best_value = value;
@@ -120,7 +119,7 @@ private:
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            float softmax_value = exp(state_value * 3);
+            float softmax_value = exp(state_value * 4);
             child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
                 tmp,
@@ -135,7 +134,7 @@ private:
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            float softmax_value = exp(state_value * 3);
+            float softmax_value = exp(state_value * 4);
             child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
                 tmp,
@@ -184,8 +183,8 @@ private:
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            float d_state_value = 0.75 * state_value + 0.25 * dirichlet[child_counter++];
-            float softmax_value = exp(d_state_value * 3);
+            float d_state_value = 3.5 * state_value + 0.5 * dirichlet[child_counter++];
+            float softmax_value = exp(d_state_value);
             child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
                 tmp,
@@ -200,8 +199,8 @@ private:
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            float d_state_value = 0.75 * state_value + 0.25 * dirichlet[child_counter++];
-            float softmax_value = exp(d_state_value * 3);
+            float d_state_value = 3.5 * state_value + 0.5 * dirichlet[child_counter++];
+            float softmax_value = exp(d_state_value);
             child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
                 tmp,

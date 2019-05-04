@@ -72,10 +72,10 @@ public:
                                  [](const TreeNode A, const TreeNode B) { return A.visit_count < B.visit_count; });
     }
     TreeNode get_child_with_temperature(double rd) {
-        int total = visit_count + (child.size() - 1) * 2;
+        int total = visit_count;
         int chosen = total * rd;
         for(auto tmp : child){
-            if((chosen -= tmp.get_visit_count()) <= 0) return tmp;
+            if((chosen -= (tmp.get_visit_count() - 2)) <= 0) return tmp;
         }
         return child.back();
     }
