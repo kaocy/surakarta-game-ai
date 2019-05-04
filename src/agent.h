@@ -131,7 +131,7 @@ public:
     virtual Action take_action(const Board& before) {
         MCTS mcts(tuple, true, 400, rd());
         Board tmp = Board(before);
-        std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1, record.size());
+        std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 2, record.size());
         std::string type = prev_action.first;
         unsigned code = prev_action.second;
         record.emplace_back(tmp);

@@ -13,7 +13,8 @@ public:
     MCTS(Tuple *tuple, bool with_tuple = false, int simulation_count = 5000, uint32_t seed = 10) :
         tuple(tuple),
         with_tuple(with_tuple),
-        simulation_count(simulation_count) { engine.seed(seed); }
+        simulation_count(simulation_count),
+        epsilon(0.9f) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
         // play with MCTS
@@ -53,9 +54,9 @@ public:
             if (leaf->is_explore()) leaf = expansion(leaf);
             leaf->set_explore();
             // Phase 3 - Simulation
-            // int value = simulation(leaf, sim);
+            int value = simulation(leaf, sim);
             // Backup from the leaf so get the value of leaf player
-            float value = leaf->get_state_value();
+            // float value = leaf->get_state_value();
             // Phase 4 - Backpropagation
             backpropagation(leaf, value);
         }
@@ -77,10 +78,12 @@ private:
             const float t = sqrt(float(node->get_visit_count()));
             const float child_softmax_sum = node->get_child_softmax_total();
             std::vector<TreeNode> &child = node->get_all_child();
+
             // find the child with maximum UCB value + Progressive Bias
-            for(size_t i = 0; i < child.size(); i++) {
-                float q = child[i].get_win_rate();
+            for (size_t i = 0; i < child.size(); i++) {
+                float w = -float(child[i].get_win_count());
                 float n = float(child[i].get_visit_count());
+                float q = w / n;
                 // float h = child[i].get_state_value();
                 float poly = child[i].get_softmax_value() / child_softmax_sum;
                 // check whether MCTS with tuple value
@@ -89,7 +92,7 @@ private:
                     poly = 1.0f;
                 }
                 float ucb = t / n;
-                //float pb = 3.0f * h / log2(n);
+                // float pb = 3.0f * h / log2(n);
                 float value = q + poly * ucb * 3;
 
                 if (best_value < value) {
@@ -146,6 +149,7 @@ private:
             ));
         }
         leaf->set_child_softmax_total(child_softmax_total);
+
         // there are no actions can be made
         if (leaf->get_all_child().size() == 0) return leaf;
 
@@ -165,18 +169,21 @@ private:
         std::vector<unsigned> eats, moves;
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
+
+        float dir_sum = 0;
         size_t child_size = eats.size() + moves.size();
         std::vector<float> dirichlet;
         std::gamma_distribution<float> gamma(0.3, 1.0f);
-        float dir_sum = 0;
+        
         for (size_t i = 0; i < child_size; i++) {
             float tmp = gamma(engine);
             dirichlet.emplace_back(tmp);
             dir_sum += tmp;
         }
         if (dir_sum >= std::numeric_limits<float>::min()) {
-            for (float &v : dirichlet) v = v / dir_sum;
+            for (float &v : dirichlet) v /= dir_sum;
         }
+
         size_t child_counter = 0;
         // expand all the possible child node, calculate tuple value, record previous action
         for (unsigned code : eats) {
@@ -264,39 +271,56 @@ private:
                     board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
                 }
             }
-            // tuple
+            // tuple with ϵ-greedy
             else if (sim == 2) {
-                float best_value = -1e9;
-                unsigned best_code = 0;
-                int best_action_type;
-                for (unsigned code : eats) {
-                    Board tmp = Board(board);
-                    tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-                    float value = tuple->get_board_value(tmp, player);
-                    if (value > best_value) {
-                        best_value = value;
-                        best_code = code;
-                        best_action_type = 0;
+                if (dis(engine) < epsilon) {
+                    float best_value = -1e9;
+                    unsigned best_code = 0;
+                    int best_action_type;
+                    for (unsigned code : eats) {
+                        Board tmp = Board(board);
+                        tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
+                        float value = tuple->get_board_value(tmp, player);
+                        if (value > best_value) {
+                            best_value = value;
+                            best_code = code;
+                            best_action_type = 0;
+                        }
+                    }
+                    for (unsigned code : moves) {
+                        Board tmp = Board(board);
+                        tmp.move(code & 0b111111, (code >> 6) & 0b111111);
+                        float value = tuple->get_board_value(tmp, player);
+                        if (value > best_value) {
+                            best_value = value;
+                            best_code = code;
+                            best_action_type = 1;
+                        }
+                    }
+                    if (best_code != 0) {
+                        if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                        else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
                     }
                 }
-                for (unsigned code : moves) {
-                    Board tmp = Board(board);
-                    tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-                    float value = tuple->get_board_value(tmp, player);
-                    if (value > best_value) {
-                        best_value = value;
-                        best_code = code;
-                        best_action_type = 1;
+
+                else {
+                    int size1 = eats.size(), size2 = moves.size();
+                    if (dis(engine) * (size1 + size2) < size1 * 5) {  // eat seems to be TOO important
+                        if (eats.size() > 0) {
+                            board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                        }
                     }
-                }
-                if (best_code != 0) {
-                    if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                    else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    else {
+                        if (moves.size() > 0) {
+                            board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                        }
+                    }
                 }
             }
+
             black_bitcount = Bitcount(board.get_board(0));
             white_bitcount = Bitcount(board.get_board(1));
-            if((black_bitcount - white_bitcount > 3) || (black_bitcount - white_bitcount < -3)) break;
+            if (abs(black_bitcount - white_bitcount) > 3) break;
             player ^= 1; // toggle player
         }
 
@@ -308,29 +332,30 @@ private:
         return -1;
     }
 
-    // void backpropagation(TreeNode *node, int value) {
-    //     // std::cout << "backpropagation\n";
-    //     while (node != NULL) {
-    //         node->add_visit_count();
-    //         if (value == 1) node->add_win_count();
-    //         node = node->get_parent();
-    //         value *= -1;
-    //     }
-    // }
-
-    void backpropagation(TreeNode *node, float value) {
+    void backpropagation(TreeNode *node, int value) {
         // std::cout << "backpropagation\n";
         while (node != NULL) {
-            node->update_win_rate(value);
             node->add_visit_count();
+            if (value == 1) node->add_win_count();
             node = node->get_parent();
             value *= -1;
         }
     }
 
+    // void backpropagation(TreeNode *node, float value) {
+    //     // std::cout << "backpropagation\n";
+    //     while (node != NULL) {
+    //         node->update_win_rate(value);
+    //         node->add_visit_count();
+    //         node = node->get_parent();
+    //         value *= -1;
+    //     }
+    // }
+
 private:
     Tuple *tuple;
     const bool with_tuple;
     const int simulation_count;
+    const float epsilon;
     std::default_random_engine engine;
 };

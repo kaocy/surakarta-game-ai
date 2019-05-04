@@ -109,6 +109,7 @@ int main(int argc, const char* argv[]) {
     int sim1 = 1, sim2 = 1;
     std::string play1_args, play2_args, tuple_args;
     bool summary = false;
+
     for (int i = 1; i < argc; i++) {
         std::string para(argv[i]);
         if (para.find("--total=") == 0) {
@@ -152,6 +153,7 @@ int main(int argc, const char* argv[]) {
             if (who.check_for_win(game.state())) break;
             // if (--count == 0) break;
         }
+        
         int black_bitcount = Bitcount(game.state().get_board(0));
         int white_bitcount = Bitcount(game.state().get_board(1));
         std::string win;
