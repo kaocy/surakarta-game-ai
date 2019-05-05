@@ -2,7 +2,7 @@
 #include <cmath>
 #include <vector>
 #include <random>
-#include <unordered_map>
+#include <list>
 #include "tree.h"
 #include "board.h"
 #include "tuple.h"
@@ -14,7 +14,7 @@ public:
         tuple(tuple),
         with_tuple(with_tuple),
         simulation_count(simulation_count),
-        epsilon(0.9f) { engine.seed(seed); }
+        epsilon(0.5f) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
         // play with MCTS
@@ -226,7 +226,7 @@ private:
         TreeNode tmp(*leaf);
         Board& board = tmp.get_board();
         int player = tmp.get_player();
-        int origin_player = player;
+        const int origin_player = player;
         int black_bitcount = Bitcount(board.get_board(0));
         int white_bitcount = Bitcount(board.get_board(1));
         // check if game is over before simulation
@@ -238,20 +238,75 @@ private:
 
         std::uniform_real_distribution<> dis(0, 1);
         std::vector<unsigned> eats, moves;
-
+        std::list<Board> record;
         // playout for at most 100 steps
-        for (int i = 0; i < 100 && !board.game_over(); i++) {
+        for (int i = 0; i < 50 && !board.game_over(); i++) {
             eats.clear(); moves.clear();
             board.get_possible_eat(eats, player);
             board.get_possible_move(moves, player);
 
-            std::shuffle(eats.begin(), eats.end(), engine);
-            std::shuffle(moves.begin(), moves.end(), engine);
+            // std::shuffle(moves.begin(), moves.end(), engine);
+            // std::shuffle(eats.begin(), eats.end(), engine);
 
-            // random
-            if (sim == 0) {
+            // // random
+            // if (sim == 0) {
+            //     int size1 = eats.size(), size2 = moves.size();
+            //     if (dis(engine) * (size1 + size2) < size1) {
+            //         if (eats.size() > 0) {
+            //             board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+            //         }
+            //     }
+            //     else {
+            //         if (moves.size() > 0) {
+            //             board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+            //         }
+            //     }
+            // }
+            // // eat first
+            // else if (sim == 1) {
+            //     if (eats.size() > 0) {
+            //         board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+            //     }
+            //     else if (moves.size() > 0) {
+            //         board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+            //     }
+            // }
+            // tuple with ϵ-greedy
+            if (dis(engine) < epsilon) {
+                float best_value = -1e9;
+                unsigned best_code = 0;
+                int best_action_type;
+                for (unsigned code : eats) {
+                    Board tmp = Board(board);
+                    tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
+                    float value = tuple->get_board_value(tmp, player);
+                    if (value > best_value) {
+                        best_value = value;
+                        best_code = code;
+                        best_action_type = 0;
+                    }
+                }
+                for (unsigned code : moves) {
+                    Board tmp = Board(board);
+                    tmp.move(code & 0b111111, (code >> 6) & 0b111111);
+                    float value = tuple->get_board_value(tmp, player);
+                    if (value > best_value) {
+                        best_value = value;
+                        best_code = code;
+                        best_action_type = 1;
+                    }
+                }
+                if (best_code != 0) {
+                    if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    record.emplace_back(board);
+                }
+            }
+            else {
+                std::shuffle(moves.begin(), moves.end(), engine);
+                std::shuffle(eats.begin(), eats.end(), engine);
                 int size1 = eats.size(), size2 = moves.size();
-                if (dis(engine) * (size1 + size2) < size1) {
+                if (dis(engine) * (size1 + size2) < size1 * 5) {  // eat seems to be TOO important
                     if (eats.size() > 0) {
                         board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
                     }
@@ -262,81 +317,33 @@ private:
                     }
                 }
             }
-            // eat first
-            else if (sim == 1) {
-                if (eats.size() > 0) {
-                    board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-                }
-                else if (moves.size() > 0) {
-                    board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-                }
-            }
-            // tuple with ϵ-greedy
-            else if (sim == 2) {
-                if (dis(engine) < epsilon) {
-                    float best_value = -1e9;
-                    unsigned best_code = 0;
-                    int best_action_type;
-                    for (unsigned code : eats) {
-                        Board tmp = Board(board);
-                        tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-                        float value = tuple->get_board_value(tmp, player);
-                        if (value > best_value) {
-                            best_value = value;
-                            best_code = code;
-                            best_action_type = 0;
-                        }
-                    }
-                    for (unsigned code : moves) {
-                        Board tmp = Board(board);
-                        tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-                        float value = tuple->get_board_value(tmp, player);
-                        if (value > best_value) {
-                            best_value = value;
-                            best_code = code;
-                            best_action_type = 1;
-                        }
-                    }
-                    if (best_code != 0) {
-                        if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                        else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                    }
-                }
-
-                else {
-                    int size1 = eats.size(), size2 = moves.size();
-                    if (dis(engine) * (size1 + size2) < size1 * 5) {  // eat seems to be TOO important
-                        if (eats.size() > 0) {
-                            board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-                        }
-                    }
-                    else {
-                        if (moves.size() > 0) {
-                            board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-                        }
-                    }
-                }
-            }
+            
 
             black_bitcount = Bitcount(board.get_board(0));
             white_bitcount = Bitcount(board.get_board(1));
             if (abs(black_bitcount - white_bitcount) > 3) break;
             player ^= 1; // toggle player
         }
-
+        int result;
+        if      (black_bitcount > white_bitcount)  result = 1;
+        else if (black_bitcount == white_bitcount) result = 0;
+        else                                       result = -1;
+        if (!record.empty()) {
+            for (Board i: record) tuple->train_weight(i, result, 1);
+        }
         // the one has more piece wins
         // std::cout << black_bitcount << " " << white_bitcount << std::endl;
-        if (origin_player == 0 && black_bitcount > white_bitcount)  return 1;
-        if (origin_player == 1 && black_bitcount < white_bitcount)  return 1;
-        if (black_bitcount == white_bitcount) return 0;
-        return -1;
+        if (origin_player == 1) result *= -1;
+        return result;
     }
 
     void backpropagation(TreeNode *node, int value) {
         // std::cout << "backpropagation\n";
+        int side = value * (node->get_player()? -1: 1);
         while (node != NULL) {
             node->add_visit_count();
             if (value == 1) node->add_win_count();
+            tuple->train_weight(node->get_board(), side, 1);
             node = node->get_parent();
             value *= -1;
         }

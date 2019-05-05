@@ -9,7 +9,7 @@
 
 class Tuple {
 public:
-    Tuple(const std::string& args = "") : alpha(0.003f) {
+    Tuple(const std::string& args = "") : learning_rate(0.003f) {
         std::stringstream ss(args);
         for (std::string pair; ss >> pair; ) {
             std::string key = pair.substr(0, pair.find('='));
@@ -17,7 +17,7 @@ public:
             meta[key] = { value };
         }
         if (meta.find("alpha") != meta.end())
-            alpha = float(meta["alpha"]);
+            learning_rate = float(meta["alpha"]);
         if (meta.find("load") != meta.end()) // pass load=... to load from a specific file
             load_weights(meta["load"]);
         else
@@ -76,9 +76,10 @@ private:
     }
 
 public:
-    void train_weight(const Board &b, float result) {
+    void train_weight(const Board &b, float result, int source = 0) {
         // result: 1 black win -1 white win
-        set_board_value(b, result);
+        if (source == 0) set_board_value(b, result, learning_rate);
+        else if (source == 1) set_board_value(b, result, learning_rate * 0.001f);
     }
 
 public:
@@ -124,7 +125,7 @@ public:
         return (outer_v + small_v + large_v) / 3.0f * (player ? -1.0f : 1.0f);
     }
 
-    void set_board_value(const Board &b, float value) {
+    void set_board_value(const Board &b, float value, float alpha) {
         uint32_t o, s, l;
         board_to_tuple(b, o, s, l);
         unsigned outer_head = (o >> 27) & 0xF, outer_index = o & ((1 << 27) - 1);
@@ -204,7 +205,7 @@ private:
 
 private:
     std::vector<Weight> outer, small, large;
-    float alpha;
+    float learning_rate;
 };
 
 void Tuple::convert81(uint64_t &head, Board &b) {

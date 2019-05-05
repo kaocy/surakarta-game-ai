@@ -52,7 +52,7 @@ public:
     virtual void close_episode(const std::string& flag = "") {
         float result = (flag == "Black") ? 1.0f : -1.0f;
         for (Board i : record) {
-            tuple->train_weight(i, result);
+            tuple->train_weight(i, result, 0);
         }
     }
 
@@ -131,7 +131,7 @@ public:
     virtual Action take_action(const Board& before) {
         MCTS mcts(tuple, true, 400, rd());
         Board tmp = Board(before);
-        std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 2, record.size());
+        std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1, record.size());
         std::string type = prev_action.first;
         unsigned code = prev_action.second;
         record.emplace_back(tmp);
@@ -179,7 +179,7 @@ public:
         float best_value = -1e9;
         unsigned best_code = 0;
         int best_action_type;
-        float alp = -1e9, bet = 1e9;
+        float alp = -1e9/*, bet = 1e9*/;
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
