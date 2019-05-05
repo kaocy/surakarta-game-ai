@@ -161,8 +161,8 @@ private:
         uint64_t outer_head = (head >> 16) & 0xFF;
         Board outer_board = b;
         convert81(outer_head, outer_board);
-        Board::data outer_white = outer_board.get_board(1);
-        Board::data outer_black = outer_board.get_board(0);
+        Board::data outer_white = outer_board.get_board(1 ^ (outer_head >> 4));
+        Board::data outer_black = outer_board.get_board(0 ^ (outer_head >> 4));
         for(auto bit : outer_rest) {
             outer_index *= 3;
             outer_index += (outer_white >> (bit-1)) & 2;
@@ -172,8 +172,8 @@ private:
         uint64_t small_head = (head >> 8) & 0xFF;
         Board small_board = b;
         convert81(small_head, small_board);
-        Board::data small_white = small_board.get_board(1);
-        Board::data small_black = small_board.get_board(0);
+        Board::data small_white = small_board.get_board(1 ^ (small_head >> 4));
+        Board::data small_black = small_board.get_board(0 ^ (small_head >> 4));
         for(auto bit : small_rest) {
             small_index *= 3;
             small_index += (small_white >> (bit-1)) & 2;
@@ -183,8 +183,8 @@ private:
         uint64_t large_head = head & 0xFF;
         Board large_board = b;
         convert81(large_head, large_board);
-        Board::data large_white = large_board.get_board(1);
-        Board::data large_black = large_board.get_board(0);
+        Board::data large_white = large_board.get_board(1 ^ (large_head >> 4));
+        Board::data large_black = large_board.get_board(0 ^ (large_head >> 4));
         for(auto bit : large_rest) {
             large_index *= 3;
             large_index += (large_white >> (bit-1)) & 2;
