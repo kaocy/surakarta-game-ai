@@ -19,11 +19,12 @@ public:
 
 class RandomAgent : public Agent {
 public:
-    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(17); }
+    RandomAgent() : Agent(), dis(0.0, 1.0) { engine.seed(rd()); }
     virtual ~RandomAgent() {}
 
 protected:
     std::default_random_engine engine;
+    std::random_device rd;
     std::uniform_real_distribution<> dis;
 };
 
@@ -38,7 +39,7 @@ public:
 
     virtual void open_episode() {
         record.clear();
-        epsilon = 0.9f;
+        epsilon = 0.3f;
     }
 
     virtual void close_episode(const std::string& flag = "") {
@@ -145,7 +146,7 @@ public:
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-            float value = tuple->minimax_search(tmp, player, 1, -bet, -alp);
+            float value = tuple->get_board_value(tmp, player);
             if (value > best_value) {
                 best_value = value;
                 best_code = code;
@@ -156,7 +157,7 @@ public:
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-            float value = tuple->minimax_search(tmp, player, 1, -bet, -alp);
+            float value = tuple->get_board_value(tmp, player);
             if (value > best_value) {
                 best_value = value;
                 best_code = code;

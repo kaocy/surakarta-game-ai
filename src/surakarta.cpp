@@ -104,8 +104,8 @@ int main(int argc, const char* argv[]) {
     std::copy(argv, argv + argc, std::ostream_iterator<const char*>(std::cout, " "));
     std::cout << std::endl << std::endl;
 
-    size_t total = 1000, block = 0, limit = 0, game_count = 500;
-    int sim1 = 0, sim2 = 0;
+    size_t total = 1000, block = 0, limit = 0, game_count = 2000;
+    int sim1 = 1, sim2 = 1;
     std::string play1_args, play2_args, tuple_args;
     bool summary = false;
     for (int i = 1; i < argc; i++) {
@@ -158,9 +158,13 @@ int main(int argc, const char* argv[]) {
         stat.close_episode(win.role());
 
         // after training some episodes, test playing result
-        if (stat.episode_count() % total == 0) {
-            fight(0, 1, sim1, sim2, &tuple, game_count);
-            fight(1, 0, sim2, sim1, &tuple, game_count);
+        if (stat.episode_count() % 1000000 == 0) {
+            fight(2, 1, sim1, sim2, &tuple, 100);
+            fight(1, 2, sim2, sim1, &tuple, 100);
+        }
+	if (stat.episode_count() % 1000000 == 0) {
+            fight(2, 3, sim1, sim2, &tuple, game_count);
+            fight(3, 2, sim2, sim1, &tuple, game_count);
         }
     }
 
