@@ -58,7 +58,9 @@ private:
 
                 // check whether MCTS with tuple value
                 if (!with_tuple)    h = 0.0f;
-                float value = -w / n + 0.5f * sqrt(2 * log2(t) / n) + 0.6f * h;
+		float ucb = (-w / n) + 0.5f * sqrt(2 * log2(t) / n);
+		float pb = 3.0f * h /log2(n);
+                float value = ucb + pb;
 
                 if (best_value < value) {
                     best_value = value;
