@@ -79,7 +79,7 @@ public:
     void train_weight(const Board &b, float result, int source = 0) {
         // result: 1 black win -1 white win
         if (source == 0) set_board_value(b, result, learning_rate);
-        else if (source == 1) set_board_value(b, result, learning_rate * 0.001f);
+        else if (source == 1) set_board_value(b, result, learning_rate * 0.005f);
     }
 
 public:
@@ -111,8 +111,6 @@ public:
     }
 
     float get_board_value(const Board &b, int player) {  // 0 black 1 white
-        if (b.get_board(0) == 0) return -1 * (player ? -1.0f : 1.0f);
-        if (b.get_board(1) == 0) return  1 * (player ? -1.0f : 1.0f);
         uint32_t o, s, l;
         board_to_tuple(b, o, s, l);
         unsigned outer_head = o >> 27, outer_index = o & ((1 << 27) - 1);

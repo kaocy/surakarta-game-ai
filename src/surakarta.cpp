@@ -156,12 +156,13 @@ int main(int argc, const char* argv[]) {
         
         int black_bitcount = Bitcount(game.state().get_board(0));
         int white_bitcount = Bitcount(game.state().get_board(1));
+        std::string win_bitcount = std::to_string(black_bitcount - white_bitcount);
         std::string win;
         if (black_bitcount > white_bitcount) win = "Black";
         else if (black_bitcount < white_bitcount) win = "White";
         else win = "Draw";
-        play1.close_episode(win);
-        play2.close_episode(win);
+        play1.close_episode(win_bitcount);
+        play2.close_episode(win_bitcount);
         stat.close_episode(win);
 
         // after training some episodes, test playing result

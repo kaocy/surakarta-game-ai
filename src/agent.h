@@ -50,7 +50,7 @@ public:
     }
 
     virtual void close_episode(const std::string& flag = "") {
-        float result = (flag == "Black") ? 1.0f : -1.0f;
+        float result = std::stof(flag);
         for (Board i : record) {
             tuple->train_weight(i, result, 0);
         }

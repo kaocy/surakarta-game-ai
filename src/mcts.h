@@ -190,7 +190,7 @@ private:
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            float d_state_value = 3.5 * state_value + 0.5 * dirichlet[child_counter++];
+            float d_state_value = 0.8 * state_value + 0.2 * dirichlet[child_counter++];
             float softmax_value = exp(d_state_value);
             child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
@@ -206,7 +206,7 @@ private:
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            float d_state_value = 3.5 * state_value + 0.5 * dirichlet[child_counter++];
+            float d_state_value = 0.8 * state_value + 0.2 * dirichlet[child_counter++];
             float softmax_value = exp(d_state_value);
             child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
@@ -324,12 +324,9 @@ private:
             if (abs(black_bitcount - white_bitcount) > 3) break;
             player ^= 1; // toggle player
         }
-        int result;
-        if      (black_bitcount > white_bitcount)  result = 1;
-        else if (black_bitcount == white_bitcount) result = 0;
-        else                                       result = -1;
+        int result = black_bitcount - white_bitcount;
         if (!record.empty()) {
-            for (Board i: record) tuple->train_weight(i, result, 1);
+            for (Board i: record) tuple->train_weight(i, result , 1);
         }
         // the one has more piece wins
         // std::cout << black_bitcount << " " << white_bitcount << std::endl;
