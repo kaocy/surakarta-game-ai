@@ -11,15 +11,14 @@
 #include "utilities.h"
 #include "mcts.h"
 
-const std::string PLAYER[] = {"MCTS_with_tuple", "MCTS", "tuple", "eat_first"};
+const std::string PLAYER[] = {"MCTS_tuple1", "MCTS_tuple2", "tuple1", "tuple2"};
 const std::string SIMULATION[] = {"(random)", "(eat-first)", "(tuple)"};
 std::mutex mtx;
 int fight_black_win, fight_white_win;
 
-void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, int seeds) {
-    MCTS mcts_tuple(tuple, true, seeds), mcts(tuple, false, seeds);
-    TuplePlayer tuple_player(tuple);
-    RandomPlayer random_player;
+void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, Tuple *tuple2, int game_count, int seeds) {
+    MCTS mcts_tuple(tuple, true, seeds), mcts(tuple2, false, seeds);
+    TuplePlayer tuple_player(tuple), tuple2_player(tuple2);
     
     int black_win = 0, white_win = 0;
     for (int i = 0; i < game_count; i++) {
@@ -41,7 +40,7 @@ void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, in
                     tuple_player.playing(board, color);
                     break;
                 case 3:
-                    random_player.playing(board, color);
+                    tuple2_player.playing(board, color);
                     break;
                 default:
                     break;
@@ -65,7 +64,7 @@ void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, in
     // std::cout << black_win << " " << white_win << std::endl;
 }
 
-void fight(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count) {
+void fight(int player1, int player2, int sim1, int sim2, Tuple *tuple, Tuple *tuple2, int game_count) {
     /** 
      * player 
      * 0 : MCTS with tuple
@@ -87,7 +86,7 @@ void fight(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_
     fight_black_win = 0, fight_white_win = 0;
     std::vector<std::thread> threads;
     for(int i = 0; i < 5; i++) {
-        threads.push_back(std::thread(fight_thread, player1, player2, sim1, sim2, tuple, game_count / 5, i));
+        threads.push_back(std::thread(fight_thread, player1, player2, sim1, sim2, tuple, tuple2, game_count / 5, i));
     }
     for (auto& th : threads) {
         th.join();
@@ -104,19 +103,13 @@ int main(int argc, const char* argv[]) {
     std::copy(argv, argv + argc, std::ostream_iterator<const char*>(std::cout, " "));
     std::cout << std::endl << std::endl;
 
-    size_t total = 1000, block = 0, limit = 0, game_count = 2000;
+    size_t game_count = 50;
     int sim1 = 1, sim2 = 1;
-    std::string play1_args, play2_args, tuple_args;
-    bool summary = false;
+    std::string play1_args, play2_args, tuple_args, tuple2_args;
     for (int i = 1; i < argc; i++) {
         std::string para(argv[i]);
-        if (para.find("--total=") == 0) {
-            total = std::stoull(para.substr(para.find("=") + 1));
-        } else if (para.find("--block=") == 0) {
-            block = std::stoull(para.substr(para.find("=") + 1));
-        } else if (para.find("--limit=") == 0) {
-            limit = std::stoull(para.substr(para.find("=") + 1));
-        } else if (para.find("--game=") == 0) {
+        
+        if (para.find("--game=") == 0) {
             game_count = std::stoull(para.substr(para.find("=") + 1));
         } else if (para.find("--play1=") == 0) {
             play1_args = para.substr(para.find("=") + 1);
@@ -128,45 +121,26 @@ int main(int argc, const char* argv[]) {
             sim2 = std::stoull(para.substr(para.find("=") + 1));
         } else if (para.find("--tuple=") == 0) {
             tuple_args = para.substr(para.find("=") + 1);
-        } else if (para.find("--summary") == 0) {
-            summary = true;
+        } else if (para.find("--tuple2=") == 0) {
+            tuple2_args = para.substr(para.find("=") + 1);
         }
     }
 
-    Tuple tuple(tuple_args);
-    Statistic stat(total, block, limit);
-    TrainingPlayer play1(0, &tuple), play2(1, &tuple);
-
-    while (!stat.is_finished()) {     
-        play1.open_episode();
-        play2.open_episode();
-        stat.open_episode(play1.role() + ":" + play2.role());
-        Episode& game = stat.back();
-
-        while (true) {
-            TrainingPlayer& who = game.take_turns(play1, play2);
-            Action action = who.take_action(game.state());
-
-            if (game.apply_action(action) != true) break;
-            if (who.check_for_win(game.state())) break;
-        }
-
-        TrainingPlayer& win = game.last_turns(play1, play2);
-
-        play1.close_episode(win.role());
-        play2.close_episode(win.role());
-        stat.close_episode(win.role());
-
-        // after training some episodes, test playing result
-        if (stat.episode_count() % total == 0) {
-            fight(0, 1, sim1, sim2, &tuple, game_count);
-            fight(1, 0, sim2, sim1, &tuple, game_count);
-        }
-    }
-
-    if (summary) {
-        stat.summary();
-    }
-
+    Tuple tuple(tuple_args), tuple2(tuple2_args);
+    time_t now;
+    // after training some episodes, test playing result
+    time(&now); printf("%s",ctime(&now));
+    fight(0, 1, sim1, sim2, &tuple, &tuple2, game_count);
+    time(&now); printf("%s",ctime(&now));
+    fight(1, 0, sim2, sim1, &tuple, &tuple2, game_count);
+    time(&now); printf("%s",ctime(&now));
+    fight(2, 3, sim1, sim2, &tuple, &tuple2, game_count);
+    time(&now); printf("%s",ctime(&now));
+    fight(3, 2, sim2, sim1, &tuple, &tuple2, game_count);
+    time(&now); printf("%s",ctime(&now));
+    fight(0, 2, sim1, sim2, &tuple, &tuple2, game_count);
+    time(&now); printf("%s",ctime(&now));
+    fight(2, 0, sim2, sim1, &tuple, &tuple2, game_count);
+    time(&now); printf("%s",ctime(&now));
     return 0;
 }

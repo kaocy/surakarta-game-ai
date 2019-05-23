@@ -24,7 +24,7 @@ public:
         root.set_player(player);
 
         // select best child after 5000 MCTS search
-        for (int i = 0; i < 5000; i++) {
+        for (int i = 0; i < 20000; i++) {
             // Phase 1 - Selection 
             TreeNode* leaf = selection(&root);
             // Phase 2 - Expansion

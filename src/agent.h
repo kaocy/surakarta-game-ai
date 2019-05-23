@@ -146,7 +146,7 @@ public:
         for (unsigned code : eats) {
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-            float value = tuple->get_board_value(tmp, player);
+            float value = tuple->minimax_search(tmp, player, 8, -bet, -alp);
             if (value > best_value) {
                 best_value = value;
                 best_code = code;
@@ -157,7 +157,7 @@ public:
         for (unsigned code : moves) {
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-            float value = tuple->get_board_value(tmp, player);
+            float value = tuple->minimax_search(tmp, player, 8, -bet, -alp);
             if (value > best_value) {
                 best_value = value;
                 best_code = code;
