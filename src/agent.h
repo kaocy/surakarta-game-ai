@@ -129,12 +129,12 @@ public:
 
     // use MCTS in training
     virtual Action take_action(const Board& before) {
-        MCTS mcts(tuple, true, 400, rd());
+        MCTS mcts(tuple, true, 1600, rd());
         Board tmp = Board(before);
         std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1, record.size());
         std::string type = prev_action.first;
         unsigned code = prev_action.second;
-        record.emplace_back(tmp);
+        record.emplace_back(tmp.get_board(0 ^ color), tmp.get_board(1 ^ color));
         if (type == "eat") {
             return Action::Eat(code);
         }

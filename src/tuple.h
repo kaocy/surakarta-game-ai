@@ -40,7 +40,7 @@ private:
 
 private:
     void init_weight() {
-        for (int i = 0; i < 13; i++) {
+        for (int i = 0; i < 21; i++) {
             // 3^16 = 43046721;
             outer.emplace_back(43046721);
             small.emplace_back(43046721);
@@ -79,7 +79,7 @@ public:
     void train_weight(const Board &b, float result, int source = 0) {
         // result: 1 black win -1 white win
         if (source == 0) set_board_value(b, result, learning_rate);
-        else if (source == 1) set_board_value(b, result, learning_rate * 0.005f);
+        else if (source == 1) set_board_value(b, result, learning_rate * 0.05f);
     }
 
 public:
@@ -110,32 +110,30 @@ public:
         return -alp;
     }
 
-    float get_board_value(const Board &b, int player) {  // 0 black 1 white
+    float get_board_value(const Board &board, const int player) {  // 0 black 1 white
+        Board b(board.get_board(0 ^ player), board.get_board(1 ^ player));
         uint32_t o, s, l;
         board_to_tuple(b, o, s, l);
         unsigned outer_head = o >> 27, outer_index = o & ((1 << 27) - 1);
         unsigned small_head = s >> 27, small_index = s & ((1 << 27) - 1);
         unsigned large_head = l >> 27, large_index = l & ((1 << 27) - 1);
 
-        float outer_v = outer[outer_head & 0xF][outer_index] * ((outer_head & 16) ? -1.0f : 1.0f);
-        float small_v = small[small_head & 0xF][small_index] * ((small_head & 16) ? -1.0f : 1.0f);
-        float large_v = large[large_head & 0xF][large_index] * ((large_head & 16) ? -1.0f : 1.0f);
-        return (outer_v + small_v + large_v) / 3.0f * (player ? -1.0f : 1.0f);
+        float outer_v = outer[outer_head][outer_index];
+        float small_v = small[small_head][small_index];
+        float large_v = large[large_head][large_index];
+        return (outer_v + small_v + large_v) / 3.0f;
     }
 
     void set_board_value(const Board &b, float value, float alpha) {
         uint32_t o, s, l;
         board_to_tuple(b, o, s, l);
-        unsigned outer_head = (o >> 27) & 0xF, outer_index = o & ((1 << 27) - 1);
-        unsigned small_head = (s >> 27) & 0xF, small_index = s & ((1 << 27) - 1);
-        unsigned large_head = (l >> 27) & 0xF, large_index = l & ((1 << 27) - 1);
-        float outer_sign = (o >> 31) ? -1.0f : 1.0f;
-        float samll_sign = (s >> 31) ? -1.0f : 1.0f;
-        float large_sign = (l >> 31) ? -1.0f : 1.0f;
+        unsigned outer_head = o >> 27, outer_index = o & ((1 << 27) - 1);
+        unsigned small_head = s >> 27, small_index = s & ((1 << 27) - 1);
+        unsigned large_head = l >> 27, large_index = l & ((1 << 27) - 1);
 
-        outer[outer_head][outer_index] += alpha * (value - outer[outer_head][outer_index] * outer_sign ) * outer_sign;
-        small[small_head][small_index] += alpha * (value - small[small_head][small_index] * samll_sign ) * samll_sign;
-        large[large_head][large_index] += alpha * (value - large[large_head][large_index] * large_sign ) * large_sign;
+        outer[outer_head][outer_index] += alpha * (value - outer[outer_head][outer_index]);
+        small[small_head][small_index] += alpha * (value - small[small_head][small_index]);
+        large[large_head][large_index] += alpha * (value - large[large_head][large_index]);
     }
 
 private:
@@ -159,8 +157,8 @@ private:
         uint64_t outer_head = (head >> 16) & 0xFF;
         Board outer_board = b;
         convert81(outer_head, outer_board);
-        Board::data outer_white = outer_board.get_board(1 ^ (outer_head >> 4));
-        Board::data outer_black = outer_board.get_board(0 ^ (outer_head >> 4));
+        Board::data outer_white = outer_board.get_board(1);
+        Board::data outer_black = outer_board.get_board(0);
         for(auto bit : outer_rest) {
             outer_index *= 3;
             outer_index += (outer_white >> (bit-1)) & 2;
@@ -170,8 +168,8 @@ private:
         uint64_t small_head = (head >> 8) & 0xFF;
         Board small_board = b;
         convert81(small_head, small_board);
-        Board::data small_white = small_board.get_board(1 ^ (small_head >> 4));
-        Board::data small_black = small_board.get_board(0 ^ (small_head >> 4));
+        Board::data small_white = small_board.get_board(1);
+        Board::data small_black = small_board.get_board(0);
         for(auto bit : small_rest) {
             small_index *= 3;
             small_index += (small_white >> (bit-1)) & 2;
@@ -181,8 +179,8 @@ private:
         uint64_t large_head = head & 0xFF;
         Board large_board = b;
         convert81(large_head, large_board);
-        Board::data large_white = large_board.get_board(1 ^ (large_head >> 4));
-        Board::data large_black = large_board.get_board(0 ^ (large_head >> 4));
+        Board::data large_white = large_board.get_board(1);
+        Board::data large_black = large_board.get_board(0);
         for(auto bit : large_rest) {
             large_index *= 3;
             large_index += (large_white >> (bit-1)) & 2;
@@ -211,109 +209,125 @@ void Tuple::convert81(uint64_t &head, Board &b) {
         // [0000]
         case 0b00000000: head = 0x00; break;
 
-        // [1000] 0100 0010 0001 2000 0200 0020 0002
+        // [1000] 0100 0010 0001
         case 0b01000000: head = 0x01; break;
         case 0b00010000: b.rotate(3); head = 0x01; break;
         case 0b00000100: b.rotate(2); head = 0x01; break;
         case 0b00000001: b.rotate(1); head = 0x01; break;
-        case 0b10000000: head = 0x11; break;
-        case 0b00100000: b.rotate(3); head = 0x11; break;
-        case 0b00001000: b.rotate(2); head = 0x11; break;
-        case 0b00000010: b.rotate(1); head = 0x11; break;
 
-        // [1100] 0110 0011 1001 2200 0220 0022 2002
-        case 0b01010000: head = 0x02; break;
-        case 0b00010100: b.rotate(3); head = 0x02; break;
-        case 0b00000101: b.rotate(2); head = 0x02; break;
-        case 0b01000001: b.rotate(1); head = 0x02; break;
-        case 0b10100000: head = 0x12; break;
-        case 0b00101000: b.rotate(3); head = 0x12; break;
-        case 0b00001010: b.rotate(2); head = 0x12; break;
-        case 0b10000010: b.rotate(1); head = 0x12; break;
+        // [2000] 0200 0020 0002
+        case 0b10000000: head = 0x02; break;
+        case 0b00100000: b.rotate(3); head = 0x02; break;
+        case 0b00001000: b.rotate(2); head = 0x02; break;
+        case 0b00000010: b.rotate(1); head = 0x02; break;
 
-        // [1010] 0101 2020 0202
-        case 0b01000100: head = 0x03; break;
-        case 0b00010001: b.rotate(1); head = 0x03; break;
-        case 0b10001000: head = 0x13; break;
-        case 0b00100010: b.rotate(1); head = 0x13; break;
+        // [1100] 0110 0011 1001
+        case 0b01010000: head = 0x03; break;
+        case 0b00010100: b.rotate(3); head = 0x03; break;
+        case 0b00000101: b.rotate(2); head = 0x03; break;
+        case 0b01000001: b.rotate(1); head = 0x03; break;
+
+        // [2200] 0220 0022 2002
+        case 0b10100000: head = 0x04; break;
+        case 0b00101000: b.rotate(3); head = 0x04; break;
+        case 0b00001010: b.rotate(2); head = 0x04; break;
+        case 0b10000010: b.rotate(1); head = 0x04; break;
+
+        // [1010] 0101
+        case 0b01000100: head = 0x05; break;
+        case 0b00010001: b.rotate(1); head = 0x05; break;
+
+        // [2020] 0202
+        case 0b10001000: head = 0x06; break;
+        case 0b00100010: b.rotate(1); head = 0x06; break;
 
         // [1200] 0120 0012 2001 2100 0210 0021 1002
-        case 0b01100000: head = 0x04; break;
-        case 0b00011000: b.rotate(3); head = 0x04; break;
-        case 0b00000110: b.rotate(2); head = 0x04; break;
-        case 0b10000001: b.rotate(1); head = 0x04; break;
-        case 0b10010000: head = 0x14; break;
-        case 0b00100100: b.rotate(3); head = 0x14; break;
-        case 0b00001001: b.rotate(2); head = 0x14; break;
-        case 0b01000010: b.rotate(1); head = 0x14; break;
+        case 0b01100000: head = 0x07; break;
+        case 0b00011000: b.rotate(3); head = 0x07; break;
+        case 0b00000110: b.rotate(2); head = 0x07; break;
+        case 0b10000001: b.rotate(1); head = 0x07; break;
+        case 0b10010000: b.rotate_tran(3); head = 0x07; break;
+        case 0b00100100: b.rotate_tran(2); head = 0x07; break;
+        case 0b00001001: b.rotate_tran(1); head = 0x07; break;
+        case 0b01000010: b.transpose(); head = 0x07; break;
 
         // [1020] 0102 2010 0201
-        case 0b01001000: head = 0x05; break;
-        case 0b00010010: b.rotate(3); head = 0x05; break;
-        case 0b10000100: b.rotate(2); head = 0x05; break;
-        case 0b00100001: b.rotate(1); head = 0x05; break;
+        case 0b01001000: head = 0x08; break;
+        case 0b00010010: b.rotate(3); head = 0x08; break;
+        case 0b10000100: b.rotate(2); head = 0x08; break;
+        case 0b00100001: b.rotate(1); head = 0x08; break;
 
-        // [1110] 0111 1011 1101 2220 0222 2022 2202
-        case 0b01010100: head = 0x06; break;
-        case 0b00010101: b.rotate(3); head = 0x06; break;
-        case 0b01000101: b.rotate(2); head = 0x06; break;
-        case 0b01010001: b.rotate(1); head = 0x06; break;
-        case 0b10101000: head = 0x16; break;
-        case 0b00101010: b.rotate(3); head = 0x16; break;
-        case 0b10001010: b.rotate(2); head = 0x16; break;
-        case 0b10100010: b.rotate(1); head = 0x16; break;
+        // [1110] 0111 1011 1101
+        case 0b01010100: head = 0x09; break;
+        case 0b00010101: b.rotate(3); head = 0x09; break;
+        case 0b01000101: b.rotate(2); head = 0x09; break;
+        case 0b01010001: b.rotate(1); head = 0x09; break;
 
-        // [1120] 0112 2011 1201 1021 1102 2110 0211 2210 0221 1022 2102 2012 2201 1220 0122
-        case 0b01011000: head = 0x07; break;
-        case 0b00010110: b.rotate(3); head = 0x07; break;
-        case 0b10000101: b.rotate(2); head = 0x07; break;
-        case 0b01100001: b.rotate(1); head = 0x07; break;
-        case 0b01001001: b.transpose(); head = 0x07; break;
-        case 0b01010010: b.rotate_tran(3); head = 0x07; break;
-        case 0b10010100: b.rotate_tran(2); head = 0x07; break;
-        case 0b00100101: b.rotate_tran(1); head = 0x07; break;
-        case 0b10100100: head = 0x17; break;
-        case 0b00101001: b.rotate(3); head = 0x17; break;
-        case 0b01001010: b.rotate(2); head = 0x17; break;
-        case 0b10010010: b.rotate(1); head = 0x17; break;
-        case 0b10000110: b.transpose(); head = 0x17; break;
-        case 0b10100001: b.rotate_tran(3); head = 0x17; break;
-        case 0b01101000: b.rotate_tran(2); head = 0x17; break;
-        case 0b00011010: b.rotate_tran(1); head = 0x17; break;
+        // [2220] 0222 2022 2202
+        case 0b10101000: head = 0x0A; break;
+        case 0b00101010: b.rotate(3); head = 0x0A; break;
+        case 0b10001010: b.rotate(2); head = 0x0A; break;
+        case 0b10100010: b.rotate(1); head = 0x0A; break;
 
-        // [1210] 0121 1012 2101 2120 0212 2021 1202
-        case 0b01100100: head = 0x08; break;
-        case 0b00011001: b.rotate(3); head = 0x08; break;
-        case 0b01000110: b.rotate(2); head = 0x08; break;
-        case 0b10010001: b.rotate(1); head = 0x08; break;
-        case 0b10011000: head = 0x18; break;
-        case 0b00100110: b.rotate(3); head = 0x18; break;
-        case 0b10001001: b.rotate(2); head = 0x18; break;
-        case 0b01100010: b.rotate(1); head = 0x18; break;
+        // [1120] 0112 2011 1201 1021 1102 2110 0211
+        case 0b01011000: head = 0x0B; break;
+        case 0b00010110: b.rotate(3); head = 0x0B; break;
+        case 0b10000101: b.rotate(2); head = 0x0B; break;
+        case 0b01100001: b.rotate(1); head = 0x0B; break;
+        case 0b01001001: b.transpose(); head = 0x0B; break;
+        case 0b01010010: b.rotate_tran(3); head = 0x0B; break;
+        case 0b10010100: b.rotate_tran(2); head = 0x0B; break;
+        case 0b00100101: b.rotate_tran(1); head = 0x0B; break;
 
-        // [1111] 2222
-        case 0b01010101: head = 0x09; break;
-        case 0b10101010: head = 0x19; break;
+        // [2210] 0221 1022 2102 2012 2201 1220 0122
+        case 0b10100100: head = 0x0C; break;
+        case 0b00101001: b.rotate(3); head = 0x0C; break;
+        case 0b01001010: b.rotate(2); head = 0x0C; break;
+        case 0b10010010: b.rotate(1); head = 0x0C; break;
+        case 0b10000110: b.transpose(); head = 0x0C; break;
+        case 0b10100001: b.rotate_tran(3); head = 0x0C; break;
+        case 0b01101000: b.rotate_tran(2); head = 0x0C; break;
+        case 0b00011010: b.rotate_tran(1); head = 0x0C; break;
 
-        // [1112] 1121 1211 2111 2221 2212 2122 1222
-        case 0b01010110: head = 0x0A; break;
-        case 0b01011001: b.rotate(1); head = 0x0A; break;
-        case 0b01100101: b.rotate(2); head = 0x0A; break;
-        case 0b10010101: b.rotate(3); head = 0x0A; break;
-        case 0b10101001: head = 0x1A; break;
-        case 0b10100110: b.rotate(1); head = 0x1A; break;
-        case 0b10011010: b.rotate(2); head = 0x1A; break;
-        case 0b01101010: b.rotate(3); head = 0x1A; break;
+        // [1210] 0121 1012 2101
+        case 0b01100100: head = 0x0D; break;
+        case 0b00011001: b.rotate(3); head = 0x0D; break;
+        case 0b01000110: b.rotate(2); head = 0x0D; break;
+        case 0b10010001: b.rotate(1); head = 0x0D; break;
+
+        // [2120] 0212 2021 1202
+        case 0b10011000: head = 0x0E; break;
+        case 0b00100110: b.rotate(3); head = 0x0E; break;
+        case 0b10001001: b.rotate(2); head = 0x0E; break;
+        case 0b01100010: b.rotate(1); head = 0x0E; break;
+
+        // [1111]
+        case 0b01010101: head = 0x0F; break;
+
+        // [2222]
+        case 0b10101010: head = 0x10; break;
+
+        // [1112] 1121 1211 2111
+        case 0b01010110: head = 0x11; break;
+        case 0b01011001: b.rotate(1); head = 0x11; break;
+        case 0b01100101: b.rotate(2); head = 0x11; break;
+        case 0b10010101: b.rotate(3); head = 0x11; break;
+
+        // [2221] 2212 2122 1222
+        case 0b10101001: head = 0x12; break;
+        case 0b10100110: b.rotate(1); head = 0x12; break;
+        case 0b10011010: b.rotate(2); head = 0x12; break;
+        case 0b01101010: b.rotate(3); head = 0x12; break;
 
         // [1122] 1221 2211 2112
-        case 0b01011010: head = 0x0B; break;
-        case 0b01101001: b.rotate(1); head = 0x0B; break;
-        case 0b10100101: b.rotate(2); head = 0x0B; break;
-        case 0b10010110: b.rotate(3); head = 0x0B; break;
+        case 0b01011010: head = 0x13; break;
+        case 0b01101001: b.rotate(1); head = 0x13; break;
+        case 0b10100101: b.rotate(2); head = 0x13; break;
+        case 0b10010110: b.rotate(3); head = 0x13; break;
 
         // [1212] 2121
-        case 0b01100110: head = 0x0C; break;
-        case 0b10011001: head = 0x1C; break;
+        case 0b01100110: head = 0x14; break;
+        case 0b10011001: b.rotate(1); head = 0x14; break;
 
         default: break;
     }

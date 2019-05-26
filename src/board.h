@@ -29,6 +29,7 @@ public:
 public:
     Board() : board_white(0x007E7E0000000000ULL), board_black(0x00000000007E7E00ULL) {}
     // Board() : board_white(0x00007E0000000000ULL), board_black(0x00000000007E0000ULL) {}
+    Board(data black, data white) : board_white(white), board_black(black) {}
     Board(const Board& b) = default;
     Board& operator =(const Board& b) = default;
     bool operator !=(const Board& b) {

@@ -240,7 +240,7 @@ private:
         std::vector<unsigned> eats, moves;
         std::list<Board> record;
         // playout for at most 100 steps
-        for (int i = 0; i < 50 && !board.game_over(); i++) {
+        for (int i = 0; i < 100 && !board.game_over(); i++) {
             eats.clear(); moves.clear();
             board.get_possible_eat(eats, player);
             board.get_possible_move(moves, player);
@@ -299,7 +299,6 @@ private:
                 if (best_code != 0) {
                     if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
                     else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                    record.emplace_back(board);
                 }
             }
             else {
@@ -317,11 +316,7 @@ private:
                     }
                 }
             }
-            
-
-            black_bitcount = Bitcount(board.get_board(0));
-            white_bitcount = Bitcount(board.get_board(1));
-            if (abs(black_bitcount - white_bitcount) > 3) break;
+            record.emplace_back(board.get_board(0 ^ player), board.get_board(1 ^ player));
             player ^= 1; // toggle player
         }
         int result = black_bitcount - white_bitcount;
