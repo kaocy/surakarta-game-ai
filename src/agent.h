@@ -53,6 +53,7 @@ public:
         float result = std::stof(flag);
         for (Board i : record) {
             tuple->train_weight(i, result, 0);
+            result *= -1;           // the first record is done by black, then alter.
         }
     }
 

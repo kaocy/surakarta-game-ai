@@ -14,7 +14,7 @@ public:
         tuple(tuple),
         with_tuple(with_tuple),
         simulation_count(simulation_count),
-        epsilon(0.5f) { engine.seed(seed); }
+        epsilon(0.3f) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
         // play with MCTS
@@ -319,12 +319,19 @@ private:
             record.emplace_back(board.get_board(0 ^ player), board.get_board(1 ^ player));
             player ^= 1; // toggle player
         }
+        black_bitcount = Bitcount(board.get_board(0));
+        white_bitcount = Bitcount(board.get_board(1));
         int result = black_bitcount - white_bitcount;
+        if (origin_player == 1) result *= -1;
         if (!record.empty()) {
-            for (Board i: record) tuple->train_weight(i, result , 1);
+            for (Board i: record) {
+                tuple->train_weight(i, result , 1);
+                result *= -1;
+            }
         }
         // the one has more piece wins
         // std::cout << black_bitcount << " " << white_bitcount << std::endl;
+        result = black_bitcount - white_bitcount;
         if (origin_player == 1) result *= -1;
         return result;
     }
