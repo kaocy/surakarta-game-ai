@@ -76,7 +76,7 @@ private:
 
         while (node->get_all_child().size() != 0) {
             float best_value = -1e9;
-            const float t = sqrt(float(node->get_visit_count()));
+            const float t = float(node->get_visit_count());
             const float child_softmax_sum = node->get_child_softmax_total();
             std::vector<TreeNode> &child = node->get_all_child();
 
@@ -86,15 +86,17 @@ private:
                 float n = float(child[i].get_visit_count());
                 float q = w / n;
                 // float h = child[i].get_state_value();
-                float poly = child[i].get_softmax_value() / child_softmax_sum;
+                float value;
                 // check whether MCTS with tuple value
-                if (!with_tuple) {
-                    // h = 0.0f;
-                    poly = 1.0f;
+                if (with_tuple){
+                    float poly = child[i].get_softmax_value() / child_softmax_sum;
+                    float ucb = sqrt(t) / n;
+                    value = q + poly * ucb * 3;
                 }
-                float ucb = t / n;
+                else {
+                    value = q + 0.5f * sqrt(2 * log2(t) / n);
+                }
                 // float pb = 3.0f * h / log2(n);
-                float value = q + poly * ucb * 3;
 
                 if (best_value < value) {
                     best_value = value;
@@ -273,7 +275,7 @@ private:
                 }
             }
             // tuple with ϵ-greedy
-            if (sim == 2) {
+            else if (sim == 2) {
                 if (dis(engine) < epsilon) {
                     float best_value = -1e9;
                     unsigned best_code = 0;
@@ -333,11 +335,9 @@ private:
 
     void backpropagation(TreeNode *node, int value) {
         // std::cout << "backpropagation\n";
-        int side = value * (node->get_player()? -1: 1);
         while (node != NULL) {
             node->add_visit_count();
             if (value > 0) node->add_win_count();
-            tuple->train_weight(node->get_board(), side, 1);
             node = node->get_parent();
             value *= -1;
         }
