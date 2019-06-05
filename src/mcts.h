@@ -24,9 +24,9 @@ public:
         }
     }
 
-    std::pair<std::string, unsigned> training(Board &board, int player, int sim, int game_length) {
+    std::pair<std::string, unsigned> training(Board &board, int player, int sim) {
         // play with MCTS
-        TreeNode node = find_next_move(board, player, sim, game_length);
+        TreeNode node = find_next_move(board, player, sim);
 
         // return best node's action
         if (node.get_board() != board) {
@@ -39,7 +39,7 @@ public:
     }
 
     // return board after best action
-    TreeNode find_next_move(Board board, int player, int sim, int game_length = 10) {
+    TreeNode find_next_move(Board board, int player, int sim) {
         Tree tree(board);
         TreeNode root = tree.get_root();
         root.set_explore();
@@ -323,12 +323,12 @@ private:
             }
             player ^= 1; // toggle player
         }
+
         black_bitcount = Bitcount(board.get_board(0));
         white_bitcount = Bitcount(board.get_board(1));
+        // std::cout << black_bitcount << " " << white_bitcount << std::endl;
         int result = black_bitcount - white_bitcount;
         // the one has more piece wins
-        // std::cout << black_bitcount << " " << white_bitcount << std::endl;
-        result = black_bitcount - white_bitcount;
         if (origin_player == 1) result *= -1;
         return result;
     }
