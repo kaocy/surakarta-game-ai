@@ -231,9 +231,10 @@ private:
         int white_bitcount = Bitcount(board.get_board(1));
         // check if game is over before simulation
         if (board.game_over()) {
-            if (origin_player == 0 && black_bitcount == 0) return -1;
-            if (origin_player == 1 && white_bitcount == 0) return -1;
-            return 1;
+            if (origin_player == 0 && black_bitcount == 0) return -white_bitcount;
+            if (origin_player == 0 && white_bitcount == 0) return black_bitcount;
+            if (origin_player == 1 && white_bitcount == 0) return -black_bitcount;
+            return white_bitcount;
         }
 
         std::uniform_real_distribution<> dis(0, 1);
@@ -341,7 +342,7 @@ private:
         int side = value * (node->get_player()? -1: 1);
         while (node != NULL) {
             node->add_visit_count();
-            if (value == 1) node->add_win_count();
+            if (value > 0) node->add_win_count();
             tuple->train_weight(node->get_board(), side, 1);
             node = node->get_parent();
             value *= -1;
