@@ -17,7 +17,7 @@ std::mutex mtx;
 int fight_black_win, fight_white_win;
 
 void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, uint32_t seeds) {
-    MCTS mcts_tuple(tuple, true, seeds), mcts(tuple, false, seeds);
+    MCTS mcts_tuple(tuple, true, 5000, seeds), mcts(tuple, false, 5000, seeds);
     TuplePlayer tuple_player(tuple);
     RandomPlayer random_player(seeds);
     
