@@ -166,9 +166,11 @@ int main(int argc, const char* argv[]) {
         stat.close_episode(win);
 
         // after training some episodes, test playing result
-        if (stat.episode_count() % 100 == 0) {
-            fight(2, 3, sim1, sim2, &tuple, game_count);
-            fight(3, 2, sim2, sim1, &tuple, game_count);
+        if (stat.episode_count() % total == 0) {
+            fight(0, 1, 1, 1, &tuple, game_count);
+            fight(1, 0, 1, 1, &tuple, game_count);
+            fight(0, 1, 0, 0, &tuple, game_count);
+            fight(1, 0, 0, 0, &tuple, game_count);
         }
     }
 
