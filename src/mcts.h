@@ -88,13 +88,13 @@ private:
                 // float h = child[i].get_state_value();
                 float value;
                 // check whether MCTS with tuple value
-                if (with_tuple){
+                if (with_tuple) {
                     float poly = child[i].get_softmax_value() / child_softmax_sum;
                     float ucb = sqrt(t) / n;
                     value = q + poly * ucb * 3;
                 }
                 else {
-                    value = q + 0.5f * sqrt(2 * log2(t) / n);
+                    value = q + sqrt(2 * log2(t) / n);
                 }
                 // float pb = 3.0f * h / log2(n);
 
