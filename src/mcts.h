@@ -240,7 +240,6 @@ private:
 
         std::uniform_real_distribution<> dis(0, 1);
         std::vector<unsigned> eats, moves;
-        std::list<Board> record;
         // playout for at most 100 steps
         for (int i = 0; i < 100 && !board.game_over(); i++) {
             eats.clear(); moves.clear();
@@ -320,19 +319,11 @@ private:
                     }
                 }
             }
-            record.emplace_back(board.get_board(0 ^ player), board.get_board(1 ^ player));
             player ^= 1; // toggle player
         }
         black_bitcount = Bitcount(board.get_board(0));
         white_bitcount = Bitcount(board.get_board(1));
         int result = black_bitcount - white_bitcount;
-        if (origin_player == 1) result *= -1;
-        if (!record.empty()) {
-            for (Board i: record) {
-                tuple->train_weight(i, result , 1);
-                result *= -1;
-            }
-        }
         // the one has more piece wins
         // std::cout << black_bitcount << " " << white_bitcount << std::endl;
         result = black_bitcount - white_bitcount;
