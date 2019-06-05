@@ -36,6 +36,10 @@ public:
         return !((board_white == b.board_white) &&
                  (board_black == b.board_black));
     }
+
+    void set_black(data black)  { board_black = black; }
+    void set_white(data white)  { board_white = white; }
+
     data& get_board(unsigned int i) {
         return (i) ? board_white : board_black;
     }
