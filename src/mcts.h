@@ -88,13 +88,13 @@ private:
                 // float h = child[i].get_state_value();
                 float value;
                 // check whether MCTS with tuple value
-                if (with_tuple){
+                if (with_tuple) {
                     float poly = child[i].get_softmax_value() / child_softmax_sum;
                     float ucb = sqrt(t) / n;
                     value = q + poly * ucb * 3;
                 }
                 else {
-                    value = q + 0.5f * sqrt(2 * log2(t) / n);
+                    value = q + sqrt(2 * log2(t) / n);
                 }
                 // float pb = 3.0f * h / log2(n);
 
@@ -234,9 +234,10 @@ private:
         int white_bitcount = Bitcount(board.get_board(1));
         // check if game is over before simulation
         if (board.game_over()) {
-            if (origin_player == 0 && black_bitcount == 0) return -1;
-            if (origin_player == 1 && white_bitcount == 0) return -1;
-            return 1;
+            if (origin_player == 0 && black_bitcount == 0) return -white_bitcount;
+            if (origin_player == 0 && white_bitcount == 0) return black_bitcount;
+            if (origin_player == 1 && white_bitcount == 0) return -black_bitcount;
+            return white_bitcount;
         }
 
         std::uniform_real_distribution<> dis(0, 1);
@@ -336,7 +337,7 @@ private:
         // std::cout << "backpropagation\n";
         while (node != NULL) {
             node->add_visit_count();
-            if (value == 1) node->add_win_count();
+            if (value > 0) node->add_win_count();
             node = node->get_parent();
             value *= -1;
         }
