@@ -13,8 +13,7 @@ public:
     MCTS(Tuple *tuple, bool with_tuple = false, int simulation_count = 5000, uint32_t seed = 10) :
         tuple(tuple),
         with_tuple(with_tuple),
-        simulation_count(simulation_count),
-        epsilon(0.3f) { engine.seed(seed); }
+        simulation_count(simulation_count) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
         // play with MCTS
@@ -276,49 +275,32 @@ private:
             }
             // tuple with ϵ-greedy
             else if (sim == 2) {
-                if (dis(engine) < epsilon) {
-                    float best_value = -1e9;
-                    unsigned best_code = 0;
-                    int best_action_type;
-                    for (unsigned code : eats) {
-                        Board tmp = Board(board);
-                        tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
-                        float value = tuple->get_board_value(tmp, player);
-                        if (value > best_value) {
-                            best_value = value;
-                            best_code = code;
-                            best_action_type = 0;
-                        }
-                    }
-                    for (unsigned code : moves) {
-                        Board tmp = Board(board);
-                        tmp.move(code & 0b111111, (code >> 6) & 0b111111);
-                        float value = tuple->get_board_value(tmp, player);
-                        if (value > best_value) {
-                            best_value = value;
-                            best_code = code;
-                            best_action_type = 1;
-                        }
-                    }
-                    if (best_code != 0) {
-                        if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                        else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                float best_value = -1e9;
+                unsigned best_code = 0;
+                int best_action_type;
+                for (unsigned code : eats) {
+                    Board tmp = Board(board);
+                    tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
+                    float value = tuple->get_board_value(tmp, player);
+                    if (value > best_value) {
+                        best_value = value;
+                        best_code = code;
+                        best_action_type = 0;
                     }
                 }
-                else {
-                    std::shuffle(moves.begin(), moves.end(), engine);
-                    std::shuffle(eats.begin(), eats.end(), engine);
-                    int size1 = eats.size(), size2 = moves.size();
-                    if (dis(engine) * (size1 + size2) < size1 * 5) {  // eat seems to be TOO important
-                        if (eats.size() > 0) {
-                            board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
-                        }
+                for (unsigned code : moves) {
+                    Board tmp = Board(board);
+                    tmp.move(code & 0b111111, (code >> 6) & 0b111111);
+                    float value = tuple->get_board_value(tmp, player);
+                    if (value > best_value) {
+                        best_value = value;
+                        best_code = code;
+                        best_action_type = 1;
                     }
-                    else {
-                        if (moves.size() > 0) {
-                            board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
-                        }
-                    }
+                }
+                if (best_code != 0) {
+                    if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
                 }
             }
             player ^= 1; // toggle player
@@ -357,6 +339,5 @@ private:
     Tuple *tuple;
     const bool with_tuple;
     const int simulation_count;
-    const float epsilon;
     std::default_random_engine engine;
 };
