@@ -3,12 +3,13 @@
 #include <iostream>
 #include <vector>
 #include "utilities.h"
+
 #define F_LAYER 0x0055005500550055ULL
 #define S_LAYER 0x0000333300003333ULL
 #define T_LAYER 0x000000000F0F0F0FULL
+#define BORDER  0xFF818181818181FFULL
 
 /**
- * 
  * bitboard for Surakarta
  *  (0)  (1)  (2)  (3)  (4)  (5)  (6)  (7)
  *  (8)  (9) (10) (11) (12) (13) (14) (15)
@@ -18,17 +19,14 @@
  * (40) (41) (42) (43) (44) (45) (46) (47)
  * (48) (49) (50) (51) (52) (53) (54) (55)
  * (56) (57) (58) (59) (60) (61) (62) (63)
- * 
  */
 
 class Board {
 public:
     typedef uint64_t data;
-    static const data BORDER = 0xFF818181818181FFULL;
 
 public:
     Board() : board_white(0x007E7E0000000000ULL), board_black(0x00000000007E7E00ULL) {}
-    // Board() : board_white(0x00007E0000000000ULL), board_black(0x00000000007E0000ULL) {}
     Board(data black, data white) : board_white(white), board_black(black) {}
     Board(const Board& b) = default;
     Board& operator =(const Board& b) = default;
@@ -36,6 +34,10 @@ public:
         return !((board_white == b.board_white) &&
                  (board_black == b.board_black));
     }
+
+    void set_black(data black)  { board_black = black; }
+    void set_white(data white)  { board_white = white; }
+
     data& get_board(unsigned int i) {
         return (i) ? board_white : board_black;
     }
@@ -51,7 +53,7 @@ public:
     void get_possible_eat(std::vector<unsigned> &eats, int color) const {
         Board::data mine = color ? board_white : board_black;
         Board::data theirs = (color ^ 1) ? board_white : board_black;
-        Board::data occupied = mine | theirs | Board::BORDER;
+        Board::data occupied = mine | theirs | BORDER;
         Board::data empty = ~occupied;
 
         eats.clear();
@@ -94,7 +96,7 @@ public:
     void get_possible_move(std::vector<unsigned> &moves, int color) const {
         Board::data mine = color ? board_white : board_black;
         Board::data theirs = (color ^ 1) ? board_white : board_black;
-        Board::data occupied = mine | theirs | Board::BORDER;
+        Board::data occupied = mine | theirs | BORDER;
         Board::data empty = ~occupied;
 
         moves.clear();

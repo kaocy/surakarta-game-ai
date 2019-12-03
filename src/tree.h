@@ -17,7 +17,12 @@ public:
         explore(false),
         prev_action(std::make_pair("none", 0)) { child.clear(); }
 
-    TreeNode(const Board &b, float state_value, float softmax_value, int player, TreeNode* parent, std::pair<std::string, unsigned> prev_action) : 
+    TreeNode(const Board &b,
+             float state_value,
+             float softmax_value,
+             int player,
+             TreeNode* parent,
+             std::pair<std::string, unsigned> prev_action) : 
         parent(parent),
         board(b),
         win_count(1),
@@ -32,6 +37,7 @@ public:
     TreeNode(const TreeNode& node) = default;
     TreeNode& operator =(const TreeNode& node) = default;
 
+public:
     TreeNode* get_parent() { return parent; }
     void set_parent(TreeNode *parent) { this->parent = parent; }
 
