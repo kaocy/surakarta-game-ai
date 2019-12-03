@@ -41,6 +41,7 @@ public:
         TreeNode root = tree.get_root();
         root.set_explore();
         root.set_player(player);
+
         // if used in training, add dirichlet noise for exploration
         if (training)   root_expansion(&root);
 
@@ -55,6 +56,7 @@ public:
             // Phase 4 - Backpropagation
             backpropagation(leaf, value);
         }
+
         // cannot find move
         if (root.get_all_child().size() == 0) return root;
 
@@ -95,8 +97,6 @@ private:
                 else {
                     value = q + sqrt(2 * log2(t) / n);
                 }
-                // float h = child[i].get_state_value();
-                // float pb = 3.0f * h / log2(n);
 
                 if (best_value < value) {
                     best_value = value;
@@ -303,8 +303,10 @@ private:
                     }
                 }
                 if (best_code != 0) {
-                    if (!best_action_type)  board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
-                    else                    board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    if (!best_action_type)
+                        board.eat(best_code & 0b111111, (best_code >> 6) & 0b111111);
+                    else
+                        board.move(best_code & 0b111111, (best_code >> 6) & 0b111111);
                 }
             }
             player ^= 1; // toggle player

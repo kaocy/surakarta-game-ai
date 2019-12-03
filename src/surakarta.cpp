@@ -52,12 +52,8 @@ void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, in
 
         int black_bitcount = Bitcount(board.get_board(0));
         int white_bitcount = Bitcount(board.get_board(1));
-        if      (black_bitcount == 0) white_win++;
-        else if (white_bitcount == 0) black_win++;
-        else {
-            if (black_bitcount > white_bitcount)    black_win++;
-            if (black_bitcount < white_bitcount)    white_win++;
-        }
+        if (black_bitcount > white_bitcount)    black_win++;
+        if (black_bitcount < white_bitcount)    white_win++;
     }
 
     mtx.lock();
@@ -97,8 +93,10 @@ void fight(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_
 
     std::cout << "Playing " << game_count << " episodes: \n";
     std::cout << std::fixed << std::setprecision(1);
-    std::cout << "Black: " << fight_black_win * 100.0 / (fight_black_win + fight_white_win) << " %" << std::endl;
-    std::cout << "White: " << fight_white_win * 100.0 / (fight_black_win + fight_white_win) << " %\n" << std::endl;
+    std::cout << "Black: " << fight_black_win * 100.0 / (fight_black_win + fight_white_win)
+              << " %" << std::endl;
+    std::cout << "White: " << fight_white_win * 100.0 / (fight_black_win + fight_white_win)
+              << " %\n" << std::endl;
 }
 
 int main(int argc, const char* argv[]) {
@@ -108,12 +106,11 @@ int main(int argc, const char* argv[]) {
 
     size_t total = 1000, block = 0, limit = 0;
     int game_count = 2000;
-    int sim1 = 1, sim2 = 1;
     std::string tuple_args;
 
     for (int i = 1; i < argc; i++) {
         std::string para(argv[i]);
-        if (para.find("--tournament") == 0) {
+        if (para.find("--tour") == 0) {
             return tournament(argc, argv);
         } else if (para.find("--total=") == 0) {
             total = std::stoull(para.substr(para.find("=") + 1));
@@ -123,10 +120,6 @@ int main(int argc, const char* argv[]) {
             limit = std::stoull(para.substr(para.find("=") + 1));
         } else if (para.find("--game=") == 0) {
             game_count = std::stoi(para.substr(para.find("=") + 1));
-        } else if (para.find("--sim1=") == 0) {
-            sim1 = std::stoi(para.substr(para.find("=") + 1));
-        } else if (para.find("--sim2=") == 0) {
-            sim2 = std::stoi(para.substr(para.find("=") + 1));
         } else if (para.find("--tuple=") == 0) {
             tuple_args = para.substr(para.find("=") + 1);
         }
