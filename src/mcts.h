@@ -232,8 +232,9 @@ private:
 
     int simulation(TreeNode *leaf, int sim) {
         // std::cout << "simulation\n";
-        Board& board = leaf->get_board();
-        int player = leaf->get_player();
+        TreeNode leaf_copy(*leaf);
+        Board& board = leaf_copy.get_board();
+        int player = leaf_copy.get_player();
         const int origin_player = player;
         
         // check if game is over before simulation
