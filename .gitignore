@@ -1,6 +1,6 @@
 .DS_Store
 surakarta
 surakarta.dSYM
-/src/.vscode
+.vscode
 *.bin
 *.txt
