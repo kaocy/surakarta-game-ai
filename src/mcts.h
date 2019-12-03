@@ -16,16 +16,14 @@ public:
         simulation_count(simulation_count) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
-        // play with MCTS
-        TreeNode node = find_next_move(board, player, sim);
+        TreeNode node = find_next_move(board, player, sim, false);
         if (node.get_board() != board) {
             board = node.get_board();
         }
     }
 
     std::pair<std::string, unsigned> training(Board &board, int player, int sim) {
-        // play with MCTS
-        TreeNode node = find_next_move(board, player, sim);
+        TreeNode node = find_next_move(board, player, sim, true);
 
         // return best node's action
         if (node.get_board() != board) {
@@ -38,14 +36,14 @@ public:
     }
 
     // return board after best action
-    TreeNode find_next_move(Board board, int player, int sim) {
+    TreeNode find_next_move(Board board, int player, int sim, bool training) {
         Tree tree(board);
         TreeNode root = tree.get_root();
         root.set_explore();
         root.set_player(player);
-        // root_expansion(&root);
+        // if used in training, add dirichlet noise for exploration
+        if (training)   root_expansion(&root);
 
-        // select best child after 5000 MCTS search
         for (int i = 0; i < simulation_count; i++) {
             // Phase 1 - Selection 
             TreeNode* leaf = selection(&root);
@@ -54,38 +52,40 @@ public:
             leaf->set_explore();
             // Phase 3 - Simulation
             int value = simulation(leaf, sim);
-            // Backup from the leaf so get the value of leaf player
-            // float value = leaf->get_state_value();
             // Phase 4 - Backpropagation
             backpropagation(leaf, value);
         }
         // cannot find move
         if (root.get_all_child().size() == 0) return root;
-        // return best move
-        // std::uniform_real_distribution<> dis(0, 1);
-        // return root.get_child_with_temperature(dis(engine));
-        return root.get_best_child_node();
+
+        if (training) { // pick child based on visit count distribution
+            std::uniform_real_distribution<> dis(0, 1);
+            return root.get_child_with_temperature(dis(engine));
+        }
+        else { // pick best child with max visit count
+            return root.get_best_child_node();
+        }
     }
 
 private:
     TreeNode* selection(TreeNode* root) {
         // std::cout << "selection\n";
-        TreeNode* node = root;
-        TreeNode* best_node = nullptr;
+        TreeNode* current_node = root;
+        TreeNode* best_node = nullptr; // best child node in one layer
 
-        while (node->get_all_child().size() != 0) {
+        while (current_node->get_all_child().size() != 0) {
             float best_value = -1e9;
-            const float t = float(node->get_visit_count());
-            const float child_softmax_sum = node->get_child_softmax_total();
-            std::vector<TreeNode> &child = node->get_all_child();
+            const float t = float(current_node->get_visit_count());
+            const float child_softmax_sum = current_node->get_child_softmax_total();
+            std::vector<TreeNode> &child = current_node->get_all_child();
 
-            // find the child with maximum UCB value + Progressive Bias
+            // find the child with maximum PUCB value
             for (size_t i = 0; i < child.size(); i++) {
                 float w = -float(child[i].get_win_count());
                 float n = float(child[i].get_visit_count());
                 float q = w / n;
-                // float h = child[i].get_state_value();
                 float value;
+
                 // check whether MCTS with tuple value
                 if (with_tuple) {
                     float poly = child[i].get_softmax_value() / child_softmax_sum;
@@ -95,6 +95,7 @@ private:
                 else {
                     value = q + sqrt(2 * log2(t) / n);
                 }
+                // float h = child[i].get_state_value();
                 // float pb = 3.0f * h / log2(n);
 
                 if (best_value < value) {
@@ -102,20 +103,23 @@ private:
                     best_node = &child[i];
                 }
             }
-            node = best_node;
+            current_node = best_node;
         }
-        return node;
+        return current_node;
     }
 
     TreeNode* expansion(TreeNode* leaf) {
         // std::cout << "expansion\n";
         const Board& board = leaf->get_board();
-        int player = leaf->get_player();
-        float child_softmax_total = 0;
         // no need to expand if game is over
         if (board.game_over())  return leaf;
 
+        int player = leaf->get_player();
+        float child_softmax_total = 0;
+        const float softmax_coefficient = 4;
+
         std::vector<unsigned> eats, moves;
+        eats.clear(); moves.clear();
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
 
@@ -124,7 +128,7 @@ private:
             Board tmp = Board(board);
             tmp.eat(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            float softmax_value = exp(state_value * 4);
+            float softmax_value = exp(state_value * softmax_coefficient);
             child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
                 tmp,
@@ -139,7 +143,7 @@ private:
             Board tmp = Board(board);
             tmp.move(code & 0b111111, (code >> 6) & 0b111111);
             float state_value = tuple->get_board_value(tmp, player);
-            float softmax_value = exp(state_value * 4);
+            float softmax_value = exp(state_value * softmax_coefficient);
             child_softmax_total += softmax_value;
             leaf->get_all_child().push_back(TreeNode(
                 tmp,
@@ -160,15 +164,18 @@ private:
         return &(leaf->get_child(dis(engine)));
     }
 
+    // used in first layer, add dirichlet noise
     void root_expansion(TreeNode* leaf) {
         // std::cout << "expansion\n";
         const Board& board = leaf->get_board();
-        const int player = leaf->get_player();
-        float child_softmax_total = 0;
         // no need to expand if game is over
         if (board.game_over())  return;
 
+        const int player = leaf->get_player();
+        float child_softmax_total = 0;
+
         std::vector<unsigned> eats, moves;
+        eats.clear(); moves.clear();
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
 
@@ -178,9 +185,9 @@ private:
         std::gamma_distribution<float> gamma(0.3, 1.0f);
         
         for (size_t i = 0; i < child_size; i++) {
-            float tmp = gamma(engine);
-            dirichlet.emplace_back(tmp);
-            dir_sum += tmp;
+            float dir = gamma(engine);
+            dirichlet.emplace_back(dir);
+            dir_sum += dir;
         }
         if (dir_sum >= std::numeric_limits<float>::min()) {
             for (float &v : dirichlet) v /= dir_sum;
@@ -225,18 +232,16 @@ private:
 
     int simulation(TreeNode *leaf, int sim) {
         // std::cout << "simulation\n";
-        TreeNode tmp(*leaf);
-        Board& board = tmp.get_board();
-        int player = tmp.get_player();
+        Board& board = leaf->get_board();
+        int player = leaf->get_player();
         const int origin_player = player;
-        int black_bitcount = Bitcount(board.get_board(0));
-        int white_bitcount = Bitcount(board.get_board(1));
+        
         // check if game is over before simulation
         if (board.game_over()) {
-            if (origin_player == 0 && black_bitcount == 0) return -white_bitcount;
-            if (origin_player == 0 && white_bitcount == 0) return black_bitcount;
-            if (origin_player == 1 && white_bitcount == 0) return -black_bitcount;
-            return white_bitcount;
+            int black_bitcount = Bitcount(board.get_board(0));
+            int white_bitcount = Bitcount(board.get_board(1));
+            if (origin_player == 0) return black_bitcount - white_bitcount;
+            else                    return white_bitcount - black_bitcount;
         }
 
         std::uniform_real_distribution<> dis(0, 1);
@@ -246,7 +251,6 @@ private:
             eats.clear(); moves.clear();
             board.get_possible_eat(eats, player);
             board.get_possible_move(moves, player);
-
             std::shuffle(moves.begin(), moves.end(), engine);
             std::shuffle(eats.begin(), eats.end(), engine);
 
@@ -306,13 +310,12 @@ private:
             player ^= 1; // toggle player
         }
 
-        black_bitcount = Bitcount(board.get_board(0));
-        white_bitcount = Bitcount(board.get_board(1));
-        // std::cout << black_bitcount << " " << white_bitcount << std::endl;
-        int result = black_bitcount - white_bitcount;
         // the one has more piece wins
-        if (origin_player == 1) result *= -1;
-        return result;
+        int black_bitcount = Bitcount(board.get_board(0));
+        int white_bitcount = Bitcount(board.get_board(1));
+        // std::cout << black_bitcount << " " << white_bitcount << std::endl;
+        if (origin_player == 0) return black_bitcount - white_bitcount;
+        else                    return white_bitcount - black_bitcount;
     }
 
     void backpropagation(TreeNode *node, int value) {
@@ -324,16 +327,6 @@ private:
             value *= -1;
         }
     }
-
-    // void backpropagation(TreeNode *node, float value) {
-    //     // std::cout << "backpropagation\n";
-    //     while (node != NULL) {
-    //         node->update_win_rate(value);
-    //         node->add_visit_count();
-    //         node = node->get_parent();
-    //         value *= -1;
-    //     }
-    // }
 
 private:
     Tuple *tuple;

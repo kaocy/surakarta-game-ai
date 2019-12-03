@@ -216,7 +216,7 @@ private:
 class RandomPlayer : public RandomAgent {
 public:
     RandomPlayer() : RandomAgent() {}
-    RandomPlayer(int seeds) : RandomAgent() {engine.seed(seeds);}
+    RandomPlayer(int seed) : RandomAgent() {engine.seed(seed);}
 public:
     void playing(Board &board, int player) {
         // random play with eat first

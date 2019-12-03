@@ -11,7 +11,9 @@ class statistic;
 class Episode {
 friend class statistic;
 public:
-    Episode() : ep_state(initial_state()), ep_time(0), turn_count(0) { ep_moves.reserve(10000); }
+    Episode() : ep_state(initial_state()),
+                ep_time(0),
+                turn_count(0) { ep_moves.reserve(10000); }
 
     Board& state() { return ep_state; }
     const Board& state() const { return ep_state; }
