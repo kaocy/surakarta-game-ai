@@ -3,6 +3,8 @@
 #include <vector>
 #include <random>
 #include <list>
+#include <iterator>
+#include <omp.h>
 #include "tree.h"
 #include "board.h"
 #include "tuple.h"
@@ -44,17 +46,34 @@ public:
 
         // if used in training, add dirichlet noise for exploration
         if (training)   root_expansion(&root);
-
-        for (int i = 0; i < simulation_count; i++) {
-            // Phase 1 - Selection 
-            TreeNode* leaf = selection(&root);
-            // Phase 2 - Expansion
-            if (leaf->is_explore()) leaf = expansion(leaf);
-            leaf->set_explore();
-            // Phase 3 - Simulation
-            int value = simulation(leaf, sim);
-            // Phase 4 - Backpropagation
-            backpropagation(leaf, value);
+        else            expansion(&root);
+        #pragma omp parallel firstprivate(board, player) num_threads(2)
+        {
+            #pragma omp for schedule(guided, 1000)
+            for (int i = 0; i < simulation_count; i++) {
+                TreeNode* leaf;
+                TreeNode leaf_copy;
+                #pragma omp critical(tree)
+                {
+                    // Phase 1 - Selection 
+                    leaf = selection(&root);
+                    
+                    // Phase 2 - Expansion
+                    if (leaf->is_explore()) {
+                        leaf = expansion(leaf);
+                        leaf->add_visit_count();
+                    }
+                    leaf->set_explore();
+                    
+                    leaf_copy = *leaf;
+                }
+                // Phase 3 - Simulation
+                int value = simulation(leaf_copy, sim);
+                
+                // Phase 4 - Backpropagation
+                #pragma omp critical(tree)
+                backpropagation(leaf, value);
+            }
         }
 
         // cannot find move
@@ -76,6 +95,7 @@ private:
         TreeNode* best_node = nullptr; // best child node in one layer
 
         while (current_node->get_all_child().size() != 0) {
+            current_node->add_visit_count();
             float best_value = -1e9;
             const float t = float(current_node->get_visit_count());
             const float child_softmax_sum = current_node->get_child_softmax_total();
@@ -105,6 +125,7 @@ private:
             }
             current_node = best_node;
         }
+        current_node->add_visit_count();
         return current_node;
     }
 
@@ -116,7 +137,7 @@ private:
 
         int player = leaf->get_player();
         float child_softmax_total = 0;
-        const float softmax_coefficient = 4;
+        const float softmax_coefficient = 2;
 
         std::vector<unsigned> eats, moves;
         eats.clear(); moves.clear();
@@ -230,9 +251,7 @@ private:
         leaf->set_child_softmax_total(child_softmax_total);
     }
 
-    int simulation(TreeNode *leaf, int sim) {
-        // std::cout << "simulation\n";
-        TreeNode leaf_copy(*leaf);
+    int simulation(TreeNode& leaf_copy, int sim) {
         Board& board = leaf_copy.get_board();
         int player = leaf_copy.get_player();
         const int origin_player = player;
@@ -245,37 +264,41 @@ private:
             else                    return white_bitcount - black_bitcount;
         }
 
-        std::uniform_real_distribution<> dis(0, 1);
+        std::uniform_int_distribution<> dis(0);
         std::vector<unsigned> eats, moves;
         // playout for at most 100 steps
         for (int i = 0; i < 100 && !board.game_over(); i++) {
             eats.clear(); moves.clear();
             board.get_possible_eat(eats, player);
             board.get_possible_move(moves, player);
-            std::shuffle(moves.begin(), moves.end(), engine);
-            std::shuffle(eats.begin(), eats.end(), engine);
+            // std::shuffle(moves.begin(), moves.end(), engine);
+            // std::shuffle(eats.begin(), eats.end(), engine);
+            auto e = eats.begin();
+            auto m = moves.begin();
+            if (eats.size() != 0)  std::advance(e, dis(engine) % eats.size());
+            if (moves.size() != 0) std::advance(m, dis(engine) % moves.size());
 
             // random
             if (sim == 0) {
                 int size1 = eats.size(), size2 = moves.size();
-                if (dis(engine) * (size1 + size2) < size1) {
+                if ((dis(engine) % (size1 + size2)) < size1) {
                     if (eats.size() > 0) {
-                        board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                        board.eat(*e & 0b111111, (*e >> 6) & 0b111111);
                     }
                 }
                 else {
                     if (moves.size() > 0) {
-                        board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                        board.move(*m & 0b111111, (*m >> 6) & 0b111111);
                     }
                 }
             }
             // eat first
             else if (sim == 1) {
                 if (eats.size() > 0) {
-                    board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
+                    board.eat(*e & 0b111111, (*e >> 6) & 0b111111);
                 }
                 else if (moves.size() > 0) {
-                    board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
+                    board.move(*m & 0b111111, (*m >> 6) & 0b111111);
                 }
             }
             // tuple with ϵ-greedy
@@ -324,7 +347,6 @@ private:
     void backpropagation(TreeNode *node, int value) {
         // std::cout << "backpropagation\n";
         while (node != NULL) {
-            node->add_visit_count();
             if (value > 0) node->add_win_count();
             node = node->get_parent();
             value *= -1;
