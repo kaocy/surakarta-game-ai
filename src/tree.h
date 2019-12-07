@@ -109,7 +109,14 @@ class Tree {
 public:
     Tree(const Board& b) { root = TreeNode(b); }
     TreeNode& get_root() { return root; }
-
+public:
+    void lock_mutex () {
+        gmtx.lock();
+    }
+    void unlock_mutex () {
+        gmtx.unlock();
+    }
 private:
     TreeNode root;
+    std::mutex gmtx;
 };

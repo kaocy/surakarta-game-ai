@@ -4,7 +4,7 @@
 #include <random>
 #include <list>
 #include <iterator>
-#include <omp.h>
+#include <thread>
 #include "tree.h"
 #include "board.h"
 #include "tuple.h"
@@ -37,6 +37,34 @@ public:
         return std::make_pair("none", 0);
     }
 
+    void find_move_thread(Tree& tree, TreeNode& root, Board board, int player,int simulation_count, int& sim, bool& training) {
+        for (int i = 0; i < simulation_count; i++) {
+            TreeNode* leaf;
+            TreeNode leaf_copy;
+            tree.lock_mutex();
+            {
+                // Phase 1 - Selection 
+                leaf = selection(&root);
+                
+                // Phase 2 - Expansion
+                if (leaf->is_explore()) {
+                    leaf = expansion(leaf);
+                    leaf->add_visit_count();
+                }
+                leaf->set_explore();
+                
+                leaf_copy = *leaf;
+            }
+            tree.unlock_mutex();
+            // Phase 3 - Simulation
+            int value = simulation(leaf_copy, sim);
+            
+            // Phase 4 - Backpropagation
+            tree.lock_mutex();
+            backpropagation(leaf, value);
+            tree.unlock_mutex();
+        }
+    }
     // return board after best action
     TreeNode find_next_move(Board board, int player, int sim, bool training) {
         Tree tree(board);
@@ -47,35 +75,16 @@ public:
         // if used in training, add dirichlet noise for exploration
         if (training)   root_expansion(&root);
         else            expansion(&root);
-        #pragma omp parallel firstprivate(board, player) num_threads(4)
-        {
-            #pragma omp for schedule(guided, 1000)
-            for (int i = 0; i < simulation_count; i++) {
-                TreeNode* leaf;
-                TreeNode leaf_copy;
-                #pragma omp critical(tree)
-                {
-                    // Phase 1 - Selection 
-                    leaf = selection(&root);
-                    
-                    // Phase 2 - Expansion
-                    if (leaf->is_explore()) {
-                        leaf = expansion(leaf);
-                        leaf->add_visit_count();
-                    }
-                    leaf->set_explore();
-                    
-                    leaf_copy = *leaf;
-                }
-                // Phase 3 - Simulation
-                int value = simulation(leaf_copy, sim);
-                
-                // Phase 4 - Backpropagation
-                #pragma omp critical(tree)
-                backpropagation(leaf, value);
-            }
+        std::vector<std::thread> threads;
+        int thread_num = 2;
+        for (int i = 0; i < thread_num - 1; i++) {
+            threads.push_back(std::thread(&MCTS::find_move_thread, this, std::ref(tree), std::ref(root), board, player, simulation_count/thread_num, std::ref(sim), std::ref(training)));
         }
-
+        find_move_thread(tree, root, board, player, simulation_count/thread_num, sim, training);
+        for (auto& th: threads) {
+            th.join();
+        }
+        
         // cannot find move
         if (root.get_all_child().size() == 0) return root;
 
@@ -89,7 +98,7 @@ public:
     }
 
 private:
-    TreeNode* selection(TreeNode* root) {
+    TreeNode* selection(TreeNode * const root) {
         // std::cout << "selection\n";
         TreeNode* current_node = root;
         TreeNode* best_node = nullptr; // best child node in one layer
