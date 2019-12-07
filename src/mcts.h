@@ -47,7 +47,7 @@ public:
         // if used in training, add dirichlet noise for exploration
         if (training)   root_expansion(&root);
         else            expansion(&root);
-        #pragma omp parallel firstprivate(board, player) num_threads(2)
+        #pragma omp parallel firstprivate(board, player) num_threads(4)
         {
             #pragma omp for schedule(guided, 1000)
             for (int i = 0; i < simulation_count; i++) {
@@ -271,34 +271,31 @@ private:
             eats.clear(); moves.clear();
             board.get_possible_eat(eats, player);
             board.get_possible_move(moves, player);
-            // std::shuffle(moves.begin(), moves.end(), engine);
-            // std::shuffle(eats.begin(), eats.end(), engine);
-            auto e = eats.begin();
-            auto m = moves.begin();
-            if (eats.size() != 0)  std::advance(e, dis(engine) % eats.size());
-            if (moves.size() != 0) std::advance(m, dis(engine) % moves.size());
+            std::shuffle(moves.begin(), moves.end(), engine);
+            std::shuffle(eats.begin(), eats.end(), engine);
+            // auto e = eats.begin();
+            // auto m = moves.begin();
+            // if (eats.size() != 0)  std::advance(e, dis(engine) % eats.size());
+            // if (moves.size() != 0) std::advance(m, dis(engine) % moves.size());
 
             // random
             if (sim == 0) {
                 int size1 = eats.size(), size2 = moves.size();
+                if (size1 + size2 == 0) break;
                 if ((dis(engine) % (size1 + size2)) < size1) {
-                    if (eats.size() > 0) {
-                        board.eat(*e & 0b111111, (*e >> 6) & 0b111111);
-                    }
+                    board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
                 }
                 else {
-                    if (moves.size() > 0) {
-                        board.move(*m & 0b111111, (*m >> 6) & 0b111111);
-                    }
+                    board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
                 }
             }
             // eat first
             else if (sim == 1) {
                 if (eats.size() > 0) {
-                    board.eat(*e & 0b111111, (*e >> 6) & 0b111111);
+                    board.eat(eats[0] & 0b111111, (eats[0] >> 6) & 0b111111);
                 }
                 else if (moves.size() > 0) {
-                    board.move(*m & 0b111111, (*m >> 6) & 0b111111);
+                    board.move(moves[0] & 0b111111, (moves[0] >> 6) & 0b111111);
                 }
             }
             // tuple with ϵ-greedy
