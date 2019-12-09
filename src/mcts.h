@@ -18,14 +18,14 @@ public:
         simulation_count(simulation_count) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
-        TreeNode node = find_next_move(board, player, sim, false);
+        TreeNode& node = find_next_move(board, player, sim, false);
         if (node.get_board() != board) {
             board = node.get_board();
         }
     }
 
     std::pair<std::string, unsigned> training(Board &board, int player, int sim) {
-        TreeNode node = find_next_move(board, player, sim, true);
+        TreeNode& node = find_next_move(board, player, sim, true);
 
         // return best node's action
         if (node.get_board() != board) {
@@ -37,63 +37,61 @@ public:
         return std::make_pair("none", 0);
     }
 
-    void find_move_thread(Tree& tree, TreeNode& root, Board board, int player,int simulation_count, int& sim, bool& training) {
+    void find_move_thread(Tree& tree,int simulation_count, int& sim) {
+        TreeNode* const root = &tree.get_root();
         for (int i = 0; i < simulation_count; i++) {
-            TreeNode* leaf;
-            TreeNode leaf_copy;
-            tree.lock_mutex();
-            {
-                // Phase 1 - Selection 
-                leaf = selection(&root);
-                
-                // Phase 2 - Expansion
-                if (leaf->is_explore()) {
-                    leaf = expansion(leaf);
-                    leaf->add_visit_count();
-                }
-                leaf->set_explore();
-                
-                leaf_copy = *leaf;
+            TreeNode *leaf, *leaf_to_expansion;
+            // Phase 1 - Selection
+            leaf = selection(root);
+            leaf_to_expansion = leaf;
+            leaf_to_expansion->lock_mutex();
+            // Phase 2 - Expansion
+            if (leaf->is_explore()) {
+                // tree.lock_mutex();
+                leaf = expansion(leaf);
+                // tree.unlock_mutex();
+                leaf->add_visit_count();
             }
-            tree.unlock_mutex();
+            leaf->set_explore();
+            leaf_to_expansion->unlock_mutex();
             // Phase 3 - Simulation
+            TreeNode leaf_copy(leaf->get_board());
+            leaf_copy.set_player(leaf->get_player());
             int value = simulation(leaf_copy, sim);
             
             // Phase 4 - Backpropagation
-            tree.lock_mutex();
             backpropagation(leaf, value);
-            tree.unlock_mutex();
         }
     }
     // return board after best action
-    TreeNode find_next_move(Board board, int player, int sim, bool training) {
+    TreeNode& find_next_move(Board board, int player, int sim, bool training) {
         Tree tree(board);
-        TreeNode root = tree.get_root();
-        root.set_explore();
-        root.set_player(player);
+        TreeNode* root = &tree.get_root();
+        root->set_explore();
+        root->set_player(player);
 
         // if used in training, add dirichlet noise for exploration
-        if (training)   root_expansion(&root);
-        else            expansion(&root);
+        if (training)   root_expansion(root);
+        else            expansion(root);
         std::vector<std::thread> threads;
-        int thread_num = 2;
+        int thread_num = 4;
         for (int i = 0; i < thread_num - 1; i++) {
-            threads.push_back(std::thread(&MCTS::find_move_thread, this, std::ref(tree), std::ref(root), board, player, simulation_count/thread_num, std::ref(sim), std::ref(training)));
+            threads.push_back(std::thread(&MCTS::find_move_thread, this, std::ref(tree), simulation_count/thread_num, std::ref(sim)));
         }
-        find_move_thread(tree, root, board, player, simulation_count/thread_num, sim, training);
+        find_move_thread(tree, simulation_count/thread_num, sim);
         for (auto& th: threads) {
             th.join();
         }
         
         // cannot find move
-        if (root.get_all_child().size() == 0) return root;
+        if (root->get_all_child().size() == 0) return *root;
 
         if (training) { // pick child based on visit count distribution
             std::uniform_real_distribution<> dis(0, 1);
-            return root.get_child_with_temperature(dis(engine));
+            return root->get_child_with_temperature(dis(engine));
         }
         else { // pick best child with max visit count
-            return root.get_best_child_node();
+            return root->get_best_child_node();
         }
     }
 
@@ -102,24 +100,26 @@ private:
         // std::cout << "selection\n";
         TreeNode* current_node = root;
         TreeNode* best_node = nullptr; // best child node in one layer
-
+        current_node->lock_mutex();
         while (current_node->get_all_child().size() != 0) {
             current_node->add_visit_count();
             float best_value = -1e9;
             const float t = float(current_node->get_visit_count());
             const float child_softmax_sum = current_node->get_child_softmax_total();
             std::vector<TreeNode> &child = current_node->get_all_child();
-
+            current_node->unlock_mutex();
             // find the child with maximum PUCB value
             for (size_t i = 0; i < child.size(); i++) {
+                child[i].lock_mutex();
                 float w = -float(child[i].get_win_count());
                 float n = float(child[i].get_visit_count());
+                float poly = child[i].get_softmax_value() / child_softmax_sum;
+                child[i].unlock_mutex();
                 float q = w / n;
                 float value;
 
                 // check whether MCTS with tuple value
                 if (with_tuple) {
-                    float poly = child[i].get_softmax_value() / child_softmax_sum;
                     float ucb = sqrt(t) / n;
                     value = q + poly * ucb * 3;
                 }
@@ -133,8 +133,10 @@ private:
                 }
             }
             current_node = best_node;
+            current_node->lock_mutex();
         }
         current_node->add_visit_count();
+        current_node->unlock_mutex();
         return current_node;
     }
 
@@ -143,15 +145,20 @@ private:
         const Board& board = leaf->get_board();
         // no need to expand if game is over
         if (board.game_over())  return leaf;
-
+        if (leaf->get_all_child().size() != 0) {
+            // Two threads select a node before set_explore at same time
+            std::uniform_int_distribution<int> dis(0, leaf->get_all_child().size() - 1);
+            return &(leaf->get_child(dis(engine)));
+        }
         int player = leaf->get_player();
         float child_softmax_total = 0;
-        const float softmax_coefficient = 2;
+        const float softmax_coefficient = 4;
 
         std::vector<unsigned> eats, moves;
         eats.clear(); moves.clear();
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
+        leaf->get_all_child().reserve(eats.size() + moves.size());
 
         // expand all the possible child node, calculate tuple value, record previous action
         for (unsigned code : eats) {
@@ -160,14 +167,14 @@ private:
             float state_value = tuple->get_board_value(tmp, player);
             float softmax_value = exp(state_value * softmax_coefficient);
             child_softmax_total += softmax_value;
-            leaf->get_all_child().push_back(TreeNode(
+            leaf->get_all_child().emplace_back(
                 tmp,
                 state_value,
                 softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("eat", code)
-            ));
+            );
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
@@ -175,14 +182,14 @@ private:
             float state_value = tuple->get_board_value(tmp, player);
             float softmax_value = exp(state_value * softmax_coefficient);
             child_softmax_total += softmax_value;
-            leaf->get_all_child().push_back(TreeNode(
+            leaf->get_all_child().emplace_back(
                 tmp,
                 state_value,
                 softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("move", code)
-            ));
+            );
         }
         leaf->set_child_softmax_total(child_softmax_total);
 
@@ -232,14 +239,14 @@ private:
             float d_state_value = 0.8 * state_value + 0.2 * dirichlet[child_counter++];
             float softmax_value = exp(d_state_value);
             child_softmax_total += softmax_value;
-            leaf->get_all_child().push_back(TreeNode(
+            leaf->get_all_child().emplace_back(
                 tmp,
                 state_value,
                 softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("eat", code)
-            ));
+            );
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
@@ -248,14 +255,14 @@ private:
             float d_state_value = 0.8 * state_value + 0.2 * dirichlet[child_counter++];
             float softmax_value = exp(d_state_value);
             child_softmax_total += softmax_value;
-            leaf->get_all_child().push_back(TreeNode(
+            leaf->get_all_child().emplace_back(
                 tmp,
                 state_value,
                 softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("move", code)
-            ));
+            );
         }
         leaf->set_child_softmax_total(child_softmax_total);
     }
@@ -353,7 +360,11 @@ private:
     void backpropagation(TreeNode *node, int value) {
         // std::cout << "backpropagation\n";
         while (node != NULL) {
-            if (value > 0) node->add_win_count();
+            if (value > 0) {
+                node->lock_mutex();
+                node->add_win_count();
+                node->unlock_mutex();
+            }
             node = node->get_parent();
             value *= -1;
         }

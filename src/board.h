@@ -45,7 +45,7 @@ public:
         return (i) ? board_white : board_black;
     }
 
-    const bool game_over() const {
+    bool game_over() const {
         return !board_white || !board_black;
     }
 
