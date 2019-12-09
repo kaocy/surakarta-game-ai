@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <mutex>
+#include <atomic>
 #include "board.h"
 
 class TreeNode {
@@ -91,10 +93,10 @@ public:
     unsigned get_prev_action_code () { return prev_action.second; }
 public:
     void lock_mutex () {
-        lmtx.lock();
+        while( lmtx.test_and_set(std::memory_order_acquire));
     }
     void unlock_mutex () {
-        lmtx.unlock();
+        lmtx.clear(std::memory_order_release);
     }
 
 private:
@@ -106,9 +108,10 @@ private:
     float state_value; // tuple value
     float softmax_value;
     float child_softmax_total;
-    int player; // current player
+    bool player; // current player
     bool explore;
-    mutable std::mutex lmtx;
+    // std::mutex lmtx;
+    std::atomic_flag lmtx = ATOMIC_FLAG_INIT;
     std::vector<TreeNode> child;
     std::pair<std::string, unsigned> prev_action;
 };
