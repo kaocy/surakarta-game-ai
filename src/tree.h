@@ -12,7 +12,7 @@ public:
         board(b),
         win_count(1),
         visit_count(2),
-        win_rate(0.0f),
+        // win_rate(0.0f),
         state_value(0.0f),
         softmax_value(1.0f),
         player(0),
@@ -28,7 +28,7 @@ public:
         board(b),
         win_count(1),
         visit_count(2),
-        win_rate(0.0f),
+        // win_rate(0.0f),
         state_value(state_value),
         softmax_value(softmax_value),
         player(player),
@@ -51,10 +51,10 @@ public:
     int get_visit_count() { return visit_count; }
     void add_visit_count() { visit_count++; }
 
-    float get_win_rate() { return win_rate; }
-    void update_win_rate(float win_rate) {
-        this->win_rate += (win_rate - this->win_rate) / (visit_count + 1);
-    }
+    // float get_win_rate() { return win_rate; }
+    // void update_win_rate(float win_rate) {
+    //     this->win_rate += (win_rate - this->win_rate) / (visit_count + 1);
+    // }
 
     float get_state_value() { return state_value; }
     void set_state_value(float state_value) { this->state_value = state_value; }
@@ -93,7 +93,9 @@ public:
     unsigned get_prev_action_code () { return prev_action.second; }
 public:
     void lock_mutex () {
-        while( lmtx.test_and_set(std::memory_order_acquire));
+        while( lmtx.test_and_set(std::memory_order_acquire)) {
+            asm volatile ("rep; nop" ::: "memory");
+        }
     }
     void unlock_mutex () {
         lmtx.clear(std::memory_order_release);
@@ -102,9 +104,9 @@ public:
 private:
     TreeNode *parent;
     Board board;
-    int win_count;
-    int visit_count;
-    float win_rate;
+    std::atomic_int win_count;
+    std::atomic_int visit_count;
+    // float win_rate;
     float state_value; // tuple value
     float softmax_value;
     float child_softmax_total;

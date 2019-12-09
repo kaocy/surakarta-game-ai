@@ -18,19 +18,21 @@ public:
         simulation_count(simulation_count) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
-        TreeNode& node = find_next_move(board, player, sim, false);
-        if (node.get_board() != board) {
-            board = node.get_board();
+        std::pair<std::string, unsigned> nouse;
+        Board next = find_next_move(board, player, sim, false, std::ref(nouse));
+        if (next != board) {
+            board = next;
         }
     }
 
     std::pair<std::string, unsigned> training(Board &board, int player, int sim) {
-        TreeNode& node = find_next_move(board, player, sim, true);
+        std::pair<std::string, unsigned> ret;
+        Board next = find_next_move(board, player, sim, true, std::ref(ret));
 
         // return best node's action
-        if (node.get_board() != board) {
-            board = node.get_board();
-            return node.get_prev_action();
+        if (next != board) {
+            board = next;
+            return ret;
         }
 
         // cannot find child node
@@ -64,7 +66,7 @@ public:
         }
     }
     // return board after best action
-    TreeNode& find_next_move(Board board, int player, int sim, bool training) {
+    Board find_next_move(Board board, int player, int sim, bool training, std::pair<std::string, unsigned>& train_act) {
         Tree tree(board);
         TreeNode* root = &tree.get_root();
         root->set_explore();
@@ -84,14 +86,16 @@ public:
         }
         
         // cannot find move
-        if (root->get_all_child().size() == 0) return *root;
+        if (root->get_all_child().size() == 0) return root->get_board();
 
         if (training) { // pick child based on visit count distribution
             std::uniform_real_distribution<> dis(0, 1);
-            return root->get_child_with_temperature(dis(engine));
+            TreeNode& ret = root->get_child_with_temperature(dis(engine));
+            train_act = ret.get_prev_action();
+            return ret.get_board();
         }
         else { // pick best child with max visit count
-            return root->get_best_child_node();
+            return root->get_best_child_node().get_board();
         }
     }
 
@@ -102,19 +106,17 @@ private:
         TreeNode* best_node = nullptr; // best child node in one layer
         current_node->lock_mutex();
         while (current_node->get_all_child().size() != 0) {
+            current_node->unlock_mutex();
             current_node->add_visit_count();
             float best_value = -1e9;
             const float t = float(current_node->get_visit_count());
             const float child_softmax_sum = current_node->get_child_softmax_total();
             std::vector<TreeNode> &child = current_node->get_all_child();
-            current_node->unlock_mutex();
             // find the child with maximum PUCB value
             for (size_t i = 0; i < child.size(); i++) {
-                child[i].lock_mutex();
                 float w = -float(child[i].get_win_count());
                 float n = float(child[i].get_visit_count());
                 float poly = child[i].get_softmax_value() / child_softmax_sum;
-                child[i].unlock_mutex();
                 float q = w / n;
                 float value;
 
@@ -135,8 +137,8 @@ private:
             current_node = best_node;
             current_node->lock_mutex();
         }
-        current_node->add_visit_count();
         current_node->unlock_mutex();
+        current_node->add_visit_count();
         return current_node;
     }
 
@@ -361,9 +363,7 @@ private:
         // std::cout << "backpropagation\n";
         while (node != NULL) {
             if (value > 0) {
-                node->lock_mutex();
                 node->add_win_count();
-                node->unlock_mutex();
             }
             node = node->get_parent();
             value *= -1;
