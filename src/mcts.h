@@ -18,33 +18,36 @@ public:
         simulation_count(simulation_count) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
-        TreeNode node = find_next_move(board, player, sim, false);
-        if (node.get_board() != board) {
-            board = node.get_board();
+        std::pair<std::string, unsigned> nouse;
+        Board next = find_next_move(board, player, sim, false, std::ref(nouse));
+        if (next != board) {
+            board = next;
         }
     }
 
     std::pair<std::string, unsigned> training(Board &board, int player, int sim) {
-        TreeNode node = find_next_move(board, player, sim, true);
+        std::pair<std::string, unsigned> ret;
+        Board next = find_next_move(board, player, sim, true, std::ref(ret));
 
         // return best node's action
-        if (node.get_board() != board) {
-            board = node.get_board();
-            return node.get_prev_action();
+        if (next != board) {
+            board = next;
+            return ret;
         }
 
         // cannot find child node
         return std::make_pair("none", 0);
     }
 
-    void find_move_thread(Tree& tree, TreeNode& root, Board board, int player,int simulation_count, int& sim, bool& training) {
+    void find_move_thread(Tree& tree, int simulation_count, int& sim, bool& training) {
+        TreeNode* const root = &tree.get_root();
         for (int i = 0; i < simulation_count; i++) {
             TreeNode* leaf;
             TreeNode leaf_copy;
             tree.lock_mutex();
             {
                 // Phase 1 - Selection 
-                leaf = selection(&root);
+                leaf = selection(root);
                 
                 // Phase 2 - Expansion
                 if (leaf->is_explore()) {
@@ -66,34 +69,36 @@ public:
         }
     }
     // return board after best action
-    TreeNode find_next_move(Board board, int player, int sim, bool training) {
+    Board find_next_move(Board board, int player, int sim, bool training, std::pair<std::string, unsigned>& train_act) {
         Tree tree(board);
-        TreeNode root = tree.get_root();
-        root.set_explore();
-        root.set_player(player);
+        TreeNode* root = &tree.get_root();
+        root->set_explore();
+        root->set_player(player);
 
         // if used in training, add dirichlet noise for exploration
-        if (training)   root_expansion(&root);
-        else            expansion(&root);
+        if (training)   root_expansion(root);
+        else            expansion(root);
         std::vector<std::thread> threads;
-        int thread_num = 2;
+        int thread_num = 4;
         for (int i = 0; i < thread_num - 1; i++) {
-            threads.push_back(std::thread(&MCTS::find_move_thread, this, std::ref(tree), std::ref(root), board, player, simulation_count/thread_num, std::ref(sim), std::ref(training)));
+            threads.push_back(std::thread(&MCTS::find_move_thread, this, std::ref(tree), simulation_count/thread_num, std::ref(sim), std::ref(training)));
         }
-        find_move_thread(tree, root, board, player, simulation_count/thread_num, sim, training);
+        find_move_thread(tree, simulation_count/thread_num, sim, training);
         for (auto& th: threads) {
             th.join();
         }
         
         // cannot find move
-        if (root.get_all_child().size() == 0) return root;
+        if (root->get_all_child().size() == 0) return root->get_board();
 
         if (training) { // pick child based on visit count distribution
             std::uniform_real_distribution<> dis(0, 1);
-            return root.get_child_with_temperature(dis(engine));
+            TreeNode& ret = root->get_child_with_temperature(dis(engine));
+            train_act = ret.get_prev_action();
+            return ret.get_board();
         }
         else { // pick best child with max visit count
-            return root.get_best_child_node();
+            return root->get_best_child_node().get_board();
         }
     }
 
@@ -160,14 +165,14 @@ private:
             float state_value = tuple->get_board_value(tmp, player);
             float softmax_value = exp(state_value * softmax_coefficient);
             child_softmax_total += softmax_value;
-            leaf->get_all_child().push_back(TreeNode(
+            leaf->get_all_child().emplace_back(
                 tmp,
                 state_value,
                 softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("eat", code)
-            ));
+            );
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
@@ -175,14 +180,14 @@ private:
             float state_value = tuple->get_board_value(tmp, player);
             float softmax_value = exp(state_value * softmax_coefficient);
             child_softmax_total += softmax_value;
-            leaf->get_all_child().push_back(TreeNode(
+            leaf->get_all_child().emplace_back(
                 tmp,
                 state_value,
                 softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("move", code)
-            ));
+            );
         }
         leaf->set_child_softmax_total(child_softmax_total);
 
@@ -232,14 +237,14 @@ private:
             float d_state_value = 0.8 * state_value + 0.2 * dirichlet[child_counter++];
             float softmax_value = exp(d_state_value);
             child_softmax_total += softmax_value;
-            leaf->get_all_child().push_back(TreeNode(
+            leaf->get_all_child().emplace_back(
                 tmp,
                 state_value,
                 softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("eat", code)
-            ));
+            );
         }
         for (unsigned code : moves) {
             Board tmp = Board(board);
@@ -248,14 +253,14 @@ private:
             float d_state_value = 0.8 * state_value + 0.2 * dirichlet[child_counter++];
             float softmax_value = exp(d_state_value);
             child_softmax_total += softmax_value;
-            leaf->get_all_child().push_back(TreeNode(
+            leaf->get_all_child().emplace_back(
                 tmp,
                 state_value,
                 softmax_value,
                 player ^ 1,
                 leaf,
                 std::make_pair("move", code)
-            ));
+            );
         }
         leaf->set_child_softmax_total(child_softmax_total);
     }
