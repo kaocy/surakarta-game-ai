@@ -18,19 +18,21 @@ public:
         simulation_count(simulation_count) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
-        TreeNode& node = find_next_move(board, player, sim, false);
-        if (node.get_board() != board) {
-            board = node.get_board();
+        std::pair<std::string, unsigned> nouse;
+        Board next = find_next_move(board, player, sim, false, std::ref(nouse));
+        if (next != board) {
+            board = next;
         }
     }
 
     std::pair<std::string, unsigned> training(Board &board, int player, int sim) {
-        TreeNode& node = find_next_move(board, player, sim, true);
+        std::pair<std::string, unsigned> ret;
+        Board next = find_next_move(board, player, sim, true, std::ref(ret));
 
         // return best node's action
-        if (node.get_board() != board) {
-            board = node.get_board();
-            return node.get_prev_action();
+        if (next != board) {
+            board = next;
+            return ret;
         }
 
         // cannot find child node
@@ -64,7 +66,7 @@ public:
         }
     }
     // return board after best action
-    TreeNode& find_next_move(Board board, int player, int sim, bool training) {
+    Board find_next_move(Board board, int player, int sim, bool training, std::pair<std::string, unsigned>& train_act) {
         Tree tree(board);
         TreeNode* root = &tree.get_root();
         root->set_explore();
@@ -74,7 +76,7 @@ public:
         if (training)   root_expansion(root);
         else            expansion(root);
         std::vector<std::thread> threads;
-        int thread_num = 4;
+        int thread_num = 1;
         for (int i = 0; i < thread_num - 1; i++) {
             threads.push_back(std::thread(&MCTS::find_move_thread, this, std::ref(tree), simulation_count/thread_num, std::ref(sim)));
         }
@@ -84,14 +86,16 @@ public:
         }
         
         // cannot find move
-        if (root->get_all_child().size() == 0) return *root;
+        if (root->get_all_child().size() == 0) return root->get_board();
 
         if (training) { // pick child based on visit count distribution
             std::uniform_real_distribution<> dis(0, 1);
-            return root->get_child_with_temperature(dis(engine));
+            TreeNode& ret = root->get_child_with_temperature(dis(engine));
+            train_act = ret.get_prev_action();
+            return ret.get_board();
         }
         else { // pick best child with max visit count
-            return root->get_best_child_node();
+            return root->get_best_child_node().get_board();
         }
     }
 
