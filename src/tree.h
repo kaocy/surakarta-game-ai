@@ -73,14 +73,14 @@ public:
     bool is_explore() { return explore; }
     void set_explore() { explore = true; }
 
-    TreeNode get_best_child_node() {
+    TreeNode& get_best_child_node() {
         return *std::max_element(child.begin(), child.end(),
-                                 [](const TreeNode A, const TreeNode B) { return A.visit_count < B.visit_count; });
+                                 [](const TreeNode& A, const TreeNode& B) { return A.visit_count < B.visit_count; });
     }
-    TreeNode get_child_with_temperature(double rd) {
+    TreeNode& get_child_with_temperature(double rd) {
         int total = visit_count;
         int chosen = total * rd;
-        for(auto tmp : child){
+        for(auto& tmp : child){
             if((chosen -= (tmp.get_visit_count() - 2)) <= 0) return tmp;
         }
         return child.back();
@@ -107,7 +107,7 @@ private:
 
 class Tree {
 public:
-    Tree(const Board& b) { root = TreeNode(b); }
+    Tree(const Board& b) : root(TreeNode(b)) {}
     TreeNode& get_root() { return root; }
 
 private:
