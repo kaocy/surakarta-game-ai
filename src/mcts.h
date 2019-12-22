@@ -49,30 +49,29 @@ public:
         // if used in training, add dirichlet noise for exploration
         if (training)   root_expansion(root);
         else            expansion(root);
-        #pragma omp parallel firstprivate(board, player) num_threads(8)
+        #pragma omp parallel firstprivate(board, player) num_threads(4)
         {
-            #pragma omp for schedule(guided, 1000)
+            #pragma omp for schedule(guided, 100)
             for (int i = 0; i < simulation_count; i++) {
-                TreeNode* leaf;
-                #pragma omp critical(tree)
-                {
-                    // Phase 1 - Selection 
-                    leaf = selection(root);
-                    
-                    // Phase 2 - Expansion
-                    if (leaf->is_explore()) {
-                        leaf = expansion(leaf);
-                        leaf->add_visit_count();
-                    }
-                    leaf->set_explore();
+                TreeNode* leaf, *leaf_to_expansion;
+
+                // Phase 1 - Selection 
+                leaf = selection(root);
+                leaf_to_expansion = leaf;
+                leaf_to_expansion->lock_mutex();
+                // Phase 2 - Expansion
+                if (leaf->is_explore()) {
+                    leaf = expansion(leaf);
+                    leaf->add_visit_count();
                 }
+                leaf->set_explore();
+                leaf_to_expansion->unlock_mutex();
                 // Phase 3 - Simulation
                 TreeNode leaf_copy(leaf->get_board());
                 leaf_copy.set_player(leaf->get_player());
                 int value = simulation(leaf_copy, sim);
                 
                 // Phase 4 - Backpropagation
-                #pragma omp critical(tree)
                 backpropagation(leaf, value);
             }
         }
@@ -96,14 +95,14 @@ private:
         // std::cout << "selection\n";
         TreeNode* current_node = root;
         TreeNode* best_node = nullptr; // best child node in one layer
-
+        current_node->lock_mutex();
         while (current_node->get_all_child().size() != 0) {
             current_node->add_visit_count();
             float best_value = -1e9;
             const float t = float(current_node->get_visit_count());
             const float child_softmax_sum = current_node->get_child_softmax_total();
             std::vector<TreeNode> &child = current_node->get_all_child();
-
+            current_node->unlock_mutex();
             // find the child with maximum PUCB value
             for (size_t i = 0; i < child.size(); i++) {
                 float w = -float(child[i].get_win_count());
@@ -127,8 +126,10 @@ private:
                 }
             }
             current_node = best_node;
+            current_node->lock_mutex();
         }
         current_node->add_visit_count();
+        current_node->unlock_mutex();
         return current_node;
     }
 
@@ -137,7 +138,11 @@ private:
         const Board& board = leaf->get_board();
         // no need to expand if game is over
         if (board.game_over())  return leaf;
-
+        if (leaf->get_all_child().size() != 0) {
+            // Two threads select a node before set_explore at same time
+            std::uniform_int_distribution<int> dis(0, leaf->get_all_child().size() - 1);
+            return &(leaf->get_child(dis(engine)));
+        }
         int player = leaf->get_player();
         float child_softmax_total = 0;
         const float softmax_coefficient = 4;
@@ -348,7 +353,11 @@ private:
     void backpropagation(TreeNode *node, int value) {
         // std::cout << "backpropagation\n";
         while (node != NULL) {
-            if (value > 0) node->add_win_count();
+            if (value > 0) {
+                node->lock_mutex();
+                node->add_win_count();
+                node->unlock_mutex();
+            }
             node = node->get_parent();
             value *= -1;
         }

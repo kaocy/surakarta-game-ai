@@ -1,10 +1,11 @@
 #pragma once
 #include <vector>
+#include <omp.h>
 #include "board.h"
 
 class TreeNode {
 public:
-    TreeNode() {}
+    TreeNode() { omp_init_lock(&lmtx); }
     TreeNode(const Board &b) : 
         parent(NULL),
         board(b),
@@ -15,7 +16,7 @@ public:
         softmax_value(1.0f),
         player(0),
         explore(false),
-        prev_action(std::make_pair("none", 0)) { child.clear(); }
+        prev_action(std::make_pair("none", 0)) { child.clear(); omp_init_lock(&lmtx); }
 
     TreeNode(const Board &b,
              float state_value,
@@ -32,7 +33,7 @@ public:
         softmax_value(softmax_value),
         player(player),
         explore(false),
-        prev_action(prev_action) { child.clear(); }
+        prev_action(prev_action) { child.clear(); omp_init_lock(&lmtx); }
 
     TreeNode(const TreeNode& node) = default;
     TreeNode& operator =(const TreeNode& node) = default;
@@ -89,6 +90,13 @@ public:
     std::pair<std::string, unsigned> get_prev_action() { return prev_action; }
     std::string get_prev_action_type () { return prev_action.first; }
     unsigned get_prev_action_code () { return prev_action.second; }
+public:
+    void lock_mutex () {
+        omp_set_lock(&lmtx);
+    }
+    void unlock_mutex () {
+        omp_unset_lock(&lmtx);
+    }
 
 private:
     TreeNode *parent;
@@ -101,6 +109,7 @@ private:
     float child_softmax_total;
     int player; // current player
     bool explore;
+    omp_lock_t lmtx;
     std::vector<TreeNode> child;
     std::pair<std::string, unsigned> prev_action;
 };
