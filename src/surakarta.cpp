@@ -107,6 +107,7 @@ int main(int argc, const char* argv[]) {
     size_t total = 1000, block = 0, limit = 0;
     int game_count = 2000;
     std::string tuple_args;
+    float epsilon = 0.9;
 
     for (int i = 1; i < argc; i++) {
         std::string para(argv[i]);
@@ -122,11 +123,13 @@ int main(int argc, const char* argv[]) {
             game_count = std::stoi(para.substr(para.find("=") + 1));
         } else if (para.find("--tuple=") == 0) {
             tuple_args = para.substr(para.find("=") + 1);
+        } else if (para.find("--epsilon=") == 0) {
+            epsilon = std::stof(para.substr(para.find("=") + 1));
         }
     }
 
     Tuple tuple(tuple_args);
-    TrainingPlayer play1(0, &tuple), play2(1, &tuple);
+    TrainingPlayer play1(0, &tuple, epsilon), play2(1, &tuple, epsilon);
     Statistic stat(total, block, limit);
 
     // training - lots of episodes

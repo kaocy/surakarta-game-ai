@@ -36,17 +36,17 @@ protected:
 
 class TrainingPlayer : public RandomAgent {
 public:
-    TrainingPlayer(unsigned color, Tuple *tuple) :
+    TrainingPlayer(unsigned color, Tuple *tuple, float epsilon = 0.9) :
         RandomAgent(),
         color(color),
-        tuple(tuple) { repetition.reserve(400); }
+        tuple(tuple),
+        epsilon(epsilon) { repetition.reserve(400); }
 
     std::string role() { return color ? "White" : "Black"; }
 
     virtual void open_episode() {
         record.clear();
         repetition.clear();
-        epsilon = 0.9f;
     }
 
     virtual void close_episode(const std::string& flag = "") {
@@ -62,7 +62,7 @@ public:
     // use MCTS in training
     virtual Action take_action(const Board& before) {
         Board tmp = Board(before);
-        MCTS mcts(tuple, true, 1600, rd());
+        MCTS mcts(tuple, true, 1600, rd(), epsilon);
         std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1);
         record.emplace_back(tmp.get_board(0 ^ color), tmp.get_board(1 ^ color));
 
@@ -96,10 +96,10 @@ private:
 
 private:
     unsigned color; // 0 for black or 1 for white
-    float epsilon;
     std::vector<Board> record;
     std::unordered_map<bs256,int> repetition;
     Tuple *tuple;
+    float epsilon;
 };
 
 class TuplePlayer : public RandomAgent {
