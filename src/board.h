@@ -81,7 +81,7 @@ public:
             for (unsigned i = 0; i < 4; i++) {
                 if ((cc_cir[i][0] & (1 << 7)) == 0) continue; // only check if mine piece is eater
                 // select eatee
-                for (unsigned j = 1; j < 4; j++) {
+                for (unsigned j = 1; j <= 4; j++) {
                     unsigned row = (i + j) & 3;
                     if(cc_cir[row][1] == 0) continue;     // the line is consider empty
                     if(cc_cir[row][1] & (1 << 7)) break;  // the eatee is mine
