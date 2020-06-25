@@ -10,21 +10,22 @@
 
 class MCTS {
 public:
-    MCTS(Tuple *tuple, bool with_tuple = false, int simulation_count = 5000, uint32_t seed = 10, float epsilon = 0.9) :
+    MCTS(Tuple *tuple, bool with_tuple = false, bool training = false, int simulation_count = 5000, uint32_t seed = 10, float epsilon = 0.9) :
         tuple(tuple),
         with_tuple(with_tuple),
+        training(training),
         simulation_count(simulation_count),
         epsilon(epsilon) { engine.seed(seed); }
 
     void playing(Board &board, int player, int sim) {
-        TreeNode node = find_next_move(board, player, sim, false);
+        TreeNode node = find_next_move(board, player, sim);
         if (node.get_board() != board) {
             board = node.get_board();
         }
     }
 
     std::pair<std::string, unsigned> training(Board &board, int player, int sim) {
-        TreeNode node = find_next_move(board, player, sim, true);
+        TreeNode node = find_next_move(board, player, sim);
 
         // return best node's action
         if (node.get_board() != board) {
@@ -37,7 +38,7 @@ public:
     }
 
     // return board after best action
-    TreeNode find_next_move(Board board, int player, int sim, bool training) {
+    TreeNode find_next_move(Board board, int player, int sim) {
         Tree tree(board);
         TreeNode root = tree.get_root();
         root.set_explore();
@@ -74,7 +75,7 @@ private:
     TreeNode* selection(TreeNode* root) {
         // std::cout << "selection\n";
         TreeNode* current_node = root;
-        TreeNode* best_node = nullptr; // best child node in one layer
+        TreeNode* best_child_node = nullptr;
 
         while (current_node->get_all_child().size() != 0) {
             float best_value = -1e9;
@@ -101,10 +102,10 @@ private:
 
                 if (best_value < value) {
                     best_value = value;
-                    best_node = &child[i];
+                    best_child_node = &child[i];
                 }
             }
-            current_node = best_node;
+            current_node = best_child_node;
         }
         return current_node;
     }
@@ -120,7 +121,6 @@ private:
         const float softmax_coefficient = 4;
 
         std::vector<unsigned> eats, moves;
-        eats.clear(); moves.clear();
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
 
@@ -176,7 +176,6 @@ private:
         float child_softmax_total = 0;
 
         std::vector<unsigned> eats, moves;
-        eats.clear(); moves.clear();
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
 
@@ -248,6 +247,8 @@ private:
 
         std::uniform_real_distribution<> dis(0, 1);
         std::vector<unsigned> eats, moves;
+        std::list<Board> record;
+
         // playout for at most 100 steps
         for (int i = 0; i < 100 && !board.game_over(); i++) {
             eats.clear(); moves.clear();
@@ -313,8 +314,6 @@ private:
                     }
                 }
                 else {
-                    std::shuffle(moves.begin(), moves.end(), engine);
-                    std::shuffle(eats.begin(), eats.end(), engine);
                     int size1 = eats.size(), size2 = moves.size();
                     if (dis(engine) * (size1 + size2) < size1 * 5) {  // eat seems to be TOO important
                         if (eats.size() > 0) {
@@ -328,6 +327,7 @@ private:
                     }
                 }
             }
+            if (training) record.emplace_back(board.get_board(0 ^ player), board.get_board(1 ^ player));
             player ^= 1; // toggle player
         }
 
@@ -335,13 +335,28 @@ private:
         int black_bitcount = Bitcount(board.get_board(0));
         int white_bitcount = Bitcount(board.get_board(1));
         // std::cout << black_bitcount << " " << white_bitcount << std::endl;
+
+        if (training) {
+            int result = black_bitcount - white_bitcount;
+            if (origin_player == 1) result *= -1;
+            for (Board b: record) {
+                tuple->train_weight(b, result , 1);
+                result *= -1;
+            }
+        }
+
         if (origin_player == 0) return black_bitcount - white_bitcount;
         else                    return white_bitcount - black_bitcount;
     }
 
     void backpropagation(TreeNode *node, int value) {
         // std::cout << "backpropagation\n";
+        float result = value;
         while (node != NULL) {
+            if (training) {
+                result *= -1;
+                tuple->train_weight(node->get_board(), result, 1);
+            }
             node->add_visit_count();
             if (value > 0) node->add_win_count();
             node = node->get_parent();
@@ -352,6 +367,7 @@ private:
 private:
     Tuple *tuple;
     const bool with_tuple;
+    const bool training;
     const int simulation_count;
     float epsilon;
     std::default_random_engine engine;

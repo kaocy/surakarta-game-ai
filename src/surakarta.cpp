@@ -18,8 +18,8 @@ std::mutex mtx;
 int fight_black_win, fight_white_win;
 
 void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, uint32_t seed) {
-    MCTS mcts_tuple(tuple, true, 5000, seed);
-    MCTS mcts(tuple, false, 5000, seed);
+    MCTS mcts_tuple(tuple, true, false, 5000, seed);
+    MCTS mcts(tuple, false, false, 5000, seed);
     TuplePlayer tuple_player(tuple);
     RandomPlayer random_player(seed);
     
@@ -149,22 +149,23 @@ int main(int argc, const char* argv[]) {
         
         int black_bitcount = Bitcount(game.state().get_board(0));
         int white_bitcount = Bitcount(game.state().get_board(1));
-        std::string win_bitcount = std::to_string(black_bitcount - white_bitcount);
+        std::string result_for_black = std::to_string(black_bitcount - white_bitcount);
+        std::string result_for_white = std::to_string(white_bitcount - black_bitcount);
         std::string win;
         if (black_bitcount > white_bitcount)      win = "Black";
         else if (black_bitcount < white_bitcount) win = "White";
         else win = "Draw";
 
-        play1.close_episode(win_bitcount);
-        play2.close_episode(win_bitcount);
+        play1.close_episode(result_for_black);
+        play2.close_episode(result_for_white);
         stat.close_episode(win);
 
         // after some episodes, test playing result
         if (stat.episode_count() % total == 0) {
-            fight(0, 1, 1, 1, &tuple, game_count);
-            fight(1, 0, 1, 1, &tuple, game_count);
-            fight(0, 1, 0, 0, &tuple, game_count);
-            fight(1, 0, 0, 0, &tuple, game_count);
+            fight(2, 3, 2, 1, &tuple, game_count);
+            fight(3, 2, 1, 2, &tuple, game_count);
+            // fight(0, 1, 0, 0, &tuple, game_count);
+            // fight(1, 0, 0, 0, &tuple, game_count);
         }
     }
     return 0;

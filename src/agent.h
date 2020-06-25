@@ -51,10 +51,8 @@ public:
 
     virtual void close_episode(const std::string& flag = "") {
         float result = std::stof(flag);
-        // the first record is done by black, then alter
-        for (Board i : record) {
-            tuple->train_weight(i, result, 0);
-            result *= -1;
+        for (Board b : record) {
+            tuple->train_weight(b, result, 0);
         }
     }
 
@@ -62,7 +60,7 @@ public:
     // use MCTS in training
     virtual Action take_action(const Board& before) {
         Board tmp = Board(before);
-        MCTS mcts(tuple, true, 1600, rd(), epsilon);
+        MCTS mcts(tuple, true, true, 1600, rd(), epsilon);
         std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1);
         record.emplace_back(tmp.get_board(0 ^ color), tmp.get_board(1 ^ color));
 
