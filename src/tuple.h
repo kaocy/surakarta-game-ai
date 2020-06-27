@@ -28,6 +28,10 @@ public:
             save_weights(meta["save"]);
     }
 
+    void learning_rate_decay() {
+        learning_rate *= 0.93;
+    }
+
 private:
     typedef std::string key;
     struct value {
@@ -61,6 +65,7 @@ private:
         in.close();
     }
 
+public:
     void save_weights(const std::string& path) {
         std::ofstream out(path, std::ios::out | std::ios::binary | std::ios::trunc);
         if (!out.is_open()) std::exit(-1);

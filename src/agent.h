@@ -54,6 +54,7 @@ public:
         for (Board b : record) {
             tuple->train_weight(b, result, 0);
         }
+        if (epsilon > 0.01) epsilon *= 0.99;
     }
 
 public:
@@ -158,7 +159,6 @@ public:
     void playing(Board &board, int player) {
         // random play with eat first
         std::vector<unsigned> eats, moves;
-        eats.clear(); moves.clear();
         board.get_possible_eat(eats, player);
         board.get_possible_move(moves, player);
         std::shuffle(eats.begin(), eats.end(), engine);

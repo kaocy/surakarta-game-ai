@@ -107,7 +107,7 @@ int main(int argc, const char* argv[]) {
     size_t total = 1000, block = 0, limit = 0;
     int game_count = 2000;
     std::string tuple_args;
-    float epsilon = 0.9;
+    float epsilon = 1.0;
 
     for (int i = 1; i < argc; i++) {
         std::string para(argv[i]);
@@ -161,11 +161,23 @@ int main(int argc, const char* argv[]) {
         stat.close_episode(win);
 
         // after some episodes, test playing result
-        if (stat.episode_count() % total == 0) {
-            fight(2, 3, 2, 1, &tuple, game_count);
-            fight(3, 2, 1, 2, &tuple, game_count);
+        if (stat.episode_count() % block == 0) {
+            tuple.learning_rate_decay();
+            fight(2, 3, 1, 1, &tuple, game_count);
+            fight(3, 2, 1, 1, &tuple, game_count);
             // fight(0, 1, 0, 0, &tuple, game_count);
             // fight(1, 0, 0, 0, &tuple, game_count);
+        }
+
+        // if (stat.episode_count() % 1 == 0) {
+        //     fight(2, 1, 1, 1, &tuple, game_count);
+        //     fight(1, 2, 1, 1, &tuple, game_count);
+        // }
+
+        if (stat.episode_count() % 1000 == 0) {
+            int i = stat.episode_count() / 1000;
+            std::string pathname = "./weight_decay_no_bp_" + std::to_string(i) + ".bin";
+            tuple.save_weights(pathname);
         }
     }
     return 0;

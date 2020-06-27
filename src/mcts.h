@@ -10,10 +10,10 @@
 
 class MCTS {
 public:
-    MCTS(Tuple *tuple, bool with_tuple = false, bool training = false, int simulation_count = 5000, uint32_t seed = 10, float epsilon = 0.9) :
+    MCTS(Tuple *tuple, bool with_tuple = false, bool is_training = false, int simulation_count = 5000, uint32_t seed = 10, float epsilon = 0.9) :
         tuple(tuple),
         with_tuple(with_tuple),
-        training(training),
+        is_training(is_training),
         simulation_count(simulation_count),
         epsilon(epsilon) { engine.seed(seed); }
 
@@ -45,7 +45,7 @@ public:
         root.set_player(player);
 
         // if used in training, add dirichlet noise for exploration
-        if (training)   root_expansion(&root);
+        if (is_training)   root_expansion(&root);
 
         for (int i = 0; i < simulation_count; i++) {
             // Phase 1 - Selection 
@@ -62,7 +62,7 @@ public:
         // cannot find move
         if (root.get_all_child().size() == 0) return root;
 
-        if (training) { // pick child based on visit count distribution
+        if (is_training) { // pick child based on visit count distribution
             std::uniform_real_distribution<> dis(0, 1);
             return root.get_child_with_temperature(dis(engine));
         }
@@ -282,7 +282,7 @@ private:
             }
             // tuple with ϵ-greedy
             else if (sim == 2) {
-                if (dis(engine) < epsilon) {
+                if (dis(engine) > epsilon) {
                     float best_value = -1e9;
                     unsigned best_code = 0;
                     int best_action_type;
@@ -327,7 +327,7 @@ private:
                     }
                 }
             }
-            if (training) record.emplace_back(board.get_board(0 ^ player), board.get_board(1 ^ player));
+            if (is_training) record.emplace_back(board.get_board(0 ^ player), board.get_board(1 ^ player));
             player ^= 1; // toggle player
         }
 
@@ -336,7 +336,7 @@ private:
         int white_bitcount = Bitcount(board.get_board(1));
         // std::cout << black_bitcount << " " << white_bitcount << std::endl;
 
-        if (training) {
+        if (is_training) {
             int result = black_bitcount - white_bitcount;
             if (origin_player == 1) result *= -1;
             for (Board b: record) {
@@ -353,7 +353,7 @@ private:
         // std::cout << "backpropagation\n";
         float result = value;
         while (node != NULL) {
-            if (training) {
+            if (is_training) {
                 result *= -1;
                 tuple->train_weight(node->get_board(), result, 1);
             }
@@ -367,7 +367,7 @@ private:
 private:
     Tuple *tuple;
     const bool with_tuple;
-    const bool training;
+    const bool is_training;
     const int simulation_count;
     float epsilon;
     std::default_random_engine engine;
