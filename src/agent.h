@@ -54,7 +54,10 @@ public:
         for (Board b : record) {
             tuple->train_weight(b, result, 0);
         }
-        if (epsilon > 0.01) epsilon *= 0.99;
+    }
+
+    void epsilon_decay() {
+        if (epsilon > 0.01) epsilon *= 0.995;
     }
 
 public:
@@ -62,7 +65,7 @@ public:
     virtual Action take_action(const Board& before) {
         Board tmp = Board(before);
         MCTS mcts(tuple, true, true, 1600, rd(), epsilon);
-        std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 1);
+        std::pair<std::string, unsigned> prev_action = mcts.training(tmp, color, 2);
         record.emplace_back(tmp.get_board(0 ^ color), tmp.get_board(1 ^ color));
 
         std::string type = prev_action.first;

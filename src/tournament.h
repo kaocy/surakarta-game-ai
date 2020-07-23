@@ -30,7 +30,7 @@ int tournament(int argc, const char* argv[]) {
     // std::cout << std::hex << board.get_board(1) << std::endl;
 
     Tuple tuple(tuple_args);
-    MCTS mcts_tuple(&tuple, true);
+    MCTS mcts_tuple(&tuple, true, false, 50000);
     int current = 0;
 
     std::cout << "Start" << std::endl;

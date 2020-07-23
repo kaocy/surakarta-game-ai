@@ -18,8 +18,8 @@ std::mutex mtx;
 int fight_black_win, fight_white_win;
 
 void fight_thread(int player1, int player2, int sim1, int sim2, Tuple *tuple, int game_count, uint32_t seed) {
-    MCTS mcts_tuple(tuple, true, false, 5000, seed);
-    MCTS mcts(tuple, false, false, 5000, seed);
+    MCTS mcts_tuple(tuple, true, false, 5000, seed, 0.0);
+    MCTS mcts(tuple, false, false, 5000, seed, 0.0);
     TuplePlayer tuple_player(tuple);
     RandomPlayer random_player(seed);
     
@@ -162,21 +162,28 @@ int main(int argc, const char* argv[]) {
 
         // after some episodes, test playing result
         if (stat.episode_count() % block == 0) {
-            tuple.learning_rate_decay();
-            fight(2, 3, 1, 1, &tuple, game_count);
-            fight(3, 2, 1, 1, &tuple, game_count);
+            // tuple.learning_rate_decay();
+            // fight(2, 3, 1, 1, &tuple, game_count);
+            // fight(3, 2, 1, 1, &tuple, game_count);
             // fight(0, 1, 0, 0, &tuple, game_count);
             // fight(1, 0, 0, 0, &tuple, game_count);
         }
 
-        // if (stat.episode_count() % 1 == 0) {
-        //     fight(2, 1, 1, 1, &tuple, game_count);
-        //     fight(1, 2, 1, 1, &tuple, game_count);
-        // }
+        if (stat.episode_count() % 5 == 0) {
+            play1.epsilon_decay();
+            play2.epsilon_decay();
+        }
+
+        if (stat.episode_count() % 1 == 0) {
+            // fight(0, 1, 1, 1, &tuple, game_count);
+            // fight(1, 0, 1, 1, &tuple, game_count);
+            fight(0, 1, 2, 1, &tuple, game_count);
+            fight(1, 0, 1, 2, &tuple, game_count);
+        }
 
         if (stat.episode_count() % 1000 == 0) {
-            int i = stat.episode_count() / 1000;
-            std::string pathname = "./weight_decay_no_bp_" + std::to_string(i) + ".bin";
+            int i = stat.episode_count() / 1000 + 1;
+            std::string pathname = "./weight_decay_tuple_" + std::to_string(i) + ".bin";
             tuple.save_weights(pathname);
         }
     }
